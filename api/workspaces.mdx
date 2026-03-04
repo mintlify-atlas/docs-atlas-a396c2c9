@@ -68,6 +68,68 @@ Retrieve all workspaces owned by the authenticated user.
 
 ---
 
+## Get All Workspaces (Admin)
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/workspaces/all/ \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "All workspaces retrieved successfully",
+  "workspaces": [
+    {
+      "id": "workspace123",
+      "name": "Production Workspace",
+      "owner": "user123",
+      "type": "private",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+Retrieve all workspaces in the system. This endpoint is restricted to admin users only.
+
+**Endpoint:** `GET /workspaces/all/`
+
+**Authentication:** Required (Admin role only)
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="workspaces" type="array">
+  Array of all workspace objects in the system
+  <Expandable title="workspace object">
+    <ResponseField name="id" type="string">
+      Workspace unique identifier
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Workspace name
+    </ResponseField>
+    <ResponseField name="owner" type="string">
+      Owner user ID
+    </ResponseField>
+    <ResponseField name="type" type="string">
+      Workspace type (private or public)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Warning>
+  This endpoint requires admin privileges. Regular users will receive a 403 Forbidden error.
+</Warning>
+
+---
+
 ## Get Workspace by ID
 
 <RequestExample>

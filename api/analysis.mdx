@@ -119,6 +119,74 @@ Create a new average analysis for sensor data.
 
 ---
 
+## Update Average Analysis
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/analysis/average/analysis123/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "range": {
+      "start_date": "2024-01-01T00:00:00Z",
+      "end_date": "2024-01-31T23:59:59Z"
+    },
+    "sensor_type": "ph"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Analysis updated successfully",
+  "analysis_id": "analysis123"
+}
+```
+</ResponseExample>
+
+Update an existing average analysis with new parameters.
+
+**Endpoint:** `PUT /analysis/average/{id}/`
+
+**Authentication:** Required
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Analysis ID to update
+</ParamField>
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="range" type="object" required>
+  Date range for the analysis
+  <Expandable title="range object">
+    <ParamField body="start_date" type="string" required>
+      Start date (ISO 8601 format)
+    </ParamField>
+    <ParamField body="end_date" type="string" required>
+      End date (ISO 8601 format)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sensor_type" type="string">
+  Specific sensor type to analyze (optional)
+</ParamField>
+
+---
+
 ## Get Average Period Analysis
 
 <RequestExample>
@@ -237,6 +305,73 @@ Create average period analysis with time grouping.
 
 <ParamField body="sensor_type" type="string">
   Specific sensor type (optional)
+</ParamField>
+
+---
+
+## Update Average Period Analysis
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/analysis/average/period/analysis456/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "sensor_name": "ph",
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31",
+    "period_type": "days"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Period analysis updated successfully",
+  "analysis_id": "analysis456"
+}
+```
+</ResponseExample>
+
+Update an existing average period analysis.
+
+**Endpoint:** `PUT /analysis/average/period/{id}/`
+
+**Authentication:** Required
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Analysis ID to update
+</ParamField>
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="sensor_name" type="string" required>
+  Sensor name to analyze
+</ParamField>
+
+<ParamField body="start_date" type="string" required>
+  Start date (YYYY-MM-DD format)
+</ParamField>
+
+<ParamField body="end_date" type="string" required>
+  End date (YYYY-MM-DD format)
+</ParamField>
+
+<ParamField body="period_type" type="string" required>
+  Period grouping: `days`, `weeks`, `months`
 </ParamField>
 
 ---
@@ -361,6 +496,79 @@ Create future value predictions based on historical data.
 
 ---
 
+## Update Prediction Analysis
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/analysis/prediction/pred123/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "range": {
+      "start_date": "2024-01-01T00:00:00Z",
+      "end_date": "2024-01-31T23:59:59Z"
+    },
+    "sensor_type": "ph",
+    "ahead": 10
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Prediction analysis updated successfully",
+  "analysis_id": "pred123"
+}
+```
+</ResponseExample>
+
+Update an existing prediction analysis with new parameters.
+
+**Endpoint:** `PUT /analysis/prediction/{id}/`
+
+**Authentication:** Required
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Analysis ID to update
+</ParamField>
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="range" type="object" required>
+  Date range for training data
+  <Expandable title="range object">
+    <ParamField body="start_date" type="string" required>
+      Start date (ISO 8601 format)
+    </ParamField>
+    <ParamField body="end_date" type="string" required>
+      End date (ISO 8601 format)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="sensor_type" type="string" required>
+  Sensor type to predict
+</ParamField>
+
+<ParamField body="ahead" type="number" default="10">
+  Number of time periods to predict ahead
+</ParamField>
+
+---
+
 ## Get Correlation Analysis
 
 <RequestExample>
@@ -471,6 +679,74 @@ Create correlation analysis between multiple sensors.
 
 <ParamField body="sensors" type="array" required>
   Array of sensor types to correlate: `ph`, `temperature`, `conductivity`, `tds`, `turbidity`
+</ParamField>
+
+<ParamField body="method" type="string" default="pearson">
+  Correlation method: `pearson`, `spearman`, or `kendall`
+</ParamField>
+
+---
+
+## Update Correlation Analysis
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/analysis/correlation/corr123/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "range": {
+      "start_date": "2024-01-01T00:00:00Z",
+      "end_date": "2024-01-31T23:59:59Z"
+    },
+    "method": "spearman"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Correlation analysis updated successfully",
+  "analysis_id": "corr123"
+}
+```
+</ResponseExample>
+
+Update an existing correlation analysis with new parameters.
+
+**Endpoint:** `PUT /analysis/correlation/{id}/`
+
+**Authentication:** Required
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Analysis ID to update
+</ParamField>
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="range" type="object" required>
+  Date range for analysis
+  <Expandable title="range object">
+    <ParamField body="start_date" type="string" required>
+      Start date (ISO 8601 format)
+    </ParamField>
+    <ParamField body="end_date" type="string" required>
+      End date (ISO 8601 format)
+    </ParamField>
+  </Expandable>
 </ParamField>
 
 <ParamField body="method" type="string" default="pearson">
