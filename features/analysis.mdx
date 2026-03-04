@@ -1,0 +1,609 @@
+---
+title: Data Analysis
+description: Time-series analysis with AI-powered insights, predictions, and PDF report generation
+---
+
+## Overview
+
+The Data Analysis feature provides powerful statistical analysis, predictions, and AI-powered insights for water quality data. Generate comprehensive reports with visualizations using matplotlib and export to PDF.
+
+<CardGroup cols={4}>
+  <Card title="Average Analysis" icon="chart-simple">
+    Statistical summaries with min/max/average
+  </Card>
+  <Card title="Time-Series" icon="chart-line">
+    Trend analysis by day, month, or year
+  </Card>
+  <Card title="Predictions" icon="crystal-ball">
+    AI-powered future value forecasting
+  </Card>
+  <Card title="Correlation" icon="chart-network">
+    Multi-sensor relationship analysis
+  </Card>
+</CardGroup>
+
+## Analysis Types
+
+### 1. Average Analysis
+
+Calculate statistical summaries for sensor data over a time period:
+
+```http
+POST /api/analysis/average/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "workspace_id": "workspace_123",
+  "meter_id": "meter_456",
+  "sensor_name": "ph",
+  "start_date": "2024-01-01",
+  "end_date": "2024-01-31"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Analysis generating with id: analysis_abc123",
+  "result": {
+    "id": "analysis_abc123",
+    "type": "average",
+    "status": "saved",
+    "data": {
+      "period": {
+        "start_date": "2024-01-01",
+        "end_date": "2024-01-31"
+      },
+      "result": [
+        {
+          "sensor": "ph",
+          "average": 7.2,
+          "min": 6.8,
+          "max": 7.6
+        },
+        {
+          "sensor": "turbidity",
+          "average": 2.3,
+          "min": 1.1,
+          "max": 4.2
+        }
+      ]
+    }
+  }
+}
+```
+
+**Features:**
+- Calculate average, minimum, and maximum values
+- Analyze single sensor or all sensors
+- Custom date ranges
+- Includes statistical bar charts in PDF reports
+
+See: `~/workspace/source/app/features/analysis/presentation/routes/average.py:16`
+
+### 2. Average by Period
+
+Analyze trends over time with period-based grouping:
+
+```http
+POST /api/analysis/average-period/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "workspace_id": "workspace_123",
+  "meter_id": "meter_456",
+  "sensor_name": "temperature",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31",
+  "period_type": "months"
+}
+```
+
+**Period Types:**
+```python
+class PeriodEnum(str, Enum):
+    DAYS = "days"      # Daily averages
+    MONTHS = "months"  # Monthly averages
+    YEARS = "years"    # Yearly averages
+```
+
+**Response:**
+```json
+{
+  "result": {
+    "sensor": "temperature",
+    "period_type": "months",
+    "period": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    },
+    "averages": [
+      {"date": "2024-01", "value": 18.5},
+      {"date": "2024-02", "value": 19.2},
+      {"date": "2024-03", "value": 21.1}
+    ]
+  }
+}
+```
+
+**Features:**
+- Time-series trend visualization
+- Line charts showing temporal patterns
+- Handles missing data (null values create gaps in charts)
+- Compare multiple sensors over the same period
+
+### 3. Prediction Analysis
+
+Forecast future sensor values using AI models:
+
+```http
+POST /api/analysis/prediction/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "workspace_id": "workspace_123",
+  "meter_id": "meter_456",
+  "sensor_name": "ph",
+  "start_date": "2024-01-01",
+  "end_date": "2024-01-31",
+  "prediction_days": 7,
+  "period_type": "days"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Analysis generating with id: pred_789",
+  "result": {
+    "sensor": "ph",
+    "data": {
+      "labels": ["2024-01-25", "2024-01-26", "2024-01-27"],
+      "values": [7.2, 7.3, 7.1]
+    },
+    "pred": {
+      "labels": ["2024-01-28", "2024-01-29", "2024-01-30"],
+      "values": [7.2, 7.4, 7.3]
+    }
+  }
+}
+```
+
+**Features:**
+- Historical data + predicted values
+- Configurable prediction horizon
+- Visual separation in charts (different line styles)
+- Supports all sensor types
+- Period-based predictions (daily, monthly, yearly)
+
+Source: `~/workspace/source/app/features/analysis/presentation/routes/prediction.py:16`
+
+### 4. Correlation Analysis
+
+Analyze relationships between multiple sensors:
+
+```http
+POST /api/analysis/correlation/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "workspace_id": "workspace_123",
+  "meter_id": "meter_456",
+  "start_date": "2024-01-01",
+  "end_date": "2024-01-31",
+  "method": "pearson"
+}
+```
+
+**Correlation Methods:**
+```python
+class CorrMethodEnum(str, Enum):
+    PEARSON = "pearson"    # Linear correlation
+    SPEARMAN = "spearman"  # Rank-based correlation
+```
+
+**Response:**
+```json
+{
+  "result": {
+    "method": "pearson",
+    "sensors": ["ph", "temperature", "conductivity", "tds", "turbidity"],
+    "matrix": [
+      [1.0, 0.23, 0.45, 0.67, -0.12],
+      [0.23, 1.0, 0.89, 0.78, 0.34],
+      [0.45, 0.89, 1.0, 0.92, 0.21],
+      [0.67, 0.78, 0.92, 1.0, 0.15],
+      [-0.12, 0.34, 0.21, 0.15, 1.0]
+    ]
+  }
+}
+```
+
+**Features:**
+- Correlation matrix heatmap visualization
+- Pearson or Spearman correlation methods
+- Identify sensor relationships and dependencies
+- All five sensors analyzed simultaneously
+
+Source: `~/workspace/source/app/features/analysis/presentation/routes/correlation.py:18`
+
+## AI-Powered Insights
+
+Chat with AI about your analysis results using OpenRouter integration.
+
+### Create AI Chat Session
+
+```http
+POST /api/analysis/ai/{analysis_id}/session
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+```json
+{
+  "session_id": "analysis_abc123-user_456",
+  "context": "Analysis type: average\nParameters: {...}\nResults: {...}",
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+### Chat with AI
+
+```http
+POST /api/analysis/ai/{analysis_id}/chat
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "message": "What does this correlation between TDS and conductivity tell us?"
+}
+```
+
+**Response:**
+```json
+{
+  "response": "The strong positive correlation (0.92) between TDS and conductivity is expected and normal. As Total Dissolved Solids increase, the water's ability to conduct electricity also increases proportionally. This relationship is used to estimate TDS from conductivity measurements in the field. Your data shows a healthy, consistent relationship between these parameters.",
+  "session_id": "analysis_abc123-user_456"
+}
+```
+
+**Features:**
+- Contextual understanding of analysis data
+- Explain statistical results in plain language
+- Answer questions about trends and patterns
+- Provide water quality insights
+- Session-based conversation history
+
+Source: `~/workspace/source/app/features/analysis/presentation/routes/ai_chat.py:46`
+
+### Get Chat Session History
+
+```http
+GET /api/analysis/ai/{analysis_id}/session
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+```json
+{
+  "session_id": "analysis_abc123-user_456",
+  "context": "Analysis context...",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:45:00Z",
+  "messages": [
+    {
+      "id": "msg_1",
+      "role": "user",
+      "content": "What does this correlation mean?",
+      "timestamp": "2024-01-15T10:32:00Z"
+    },
+    {
+      "id": "msg_2",
+      "role": "assistant",
+      "content": "The correlation indicates...",
+      "timestamp": "2024-01-15T10:32:05Z"
+    }
+  ],
+  "metadata": {
+    "analysis_id": "analysis_abc123",
+    "analysis_type": "correlation",
+    "workspace_id": "workspace_123",
+    "meter_id": "meter_456"
+  }
+}
+```
+
+<Info>
+  AI chat sessions are automatically created on first message if they don't exist. The analysis must have `status: "saved"` before AI interaction.
+</Info>
+
+## Chart Generation
+
+Analysis results include visualizations generated with matplotlib.
+
+### Chart Types
+
+```python
+class ChartType(str, Enum):
+    LINE = "line"        # Time-series trends
+    BAR = "bar"          # Comparative statistics
+    HEATMAP = "heatmap"  # Correlation matrices
+```
+
+### Line Charts
+
+```python
+class LineChartData(BaseModel):
+    x_values: list[str]              # Date labels
+    series: dict[str, list[float]]   # Sensor name -> values
+
+class ChartConfig(BaseModel):
+    chart_type: ChartType
+    title: str
+    x_label: str
+    y_label: str
+    period_type: str = "days"  # For x-axis formatting
+    width: int = 140
+    height: int = 100
+```
+
+**Features:**
+- Multiple data series on one chart
+- Automatic date formatting based on period type
+- Gap handling for missing data (None values)
+- Customizable dimensions
+
+### Bar Charts
+
+```python
+class BarChartData(BaseModel):
+    categories: list[str]             # X-axis categories
+    series: dict[str, list[float]]    # Series name -> values
+```
+
+Used for:
+- Average, min, max comparisons
+- Single-point statistics
+- Sensor comparisons
+
+### Heatmaps
+
+```python
+class HeatmapData(BaseModel):
+    data: list[list[float]]  # 2D correlation matrix
+    x_labels: list[str]      # Sensor names
+    y_labels: list[str]      # Sensor names
+```
+
+Used for:
+- Correlation matrices
+- Visual representation of sensor relationships
+- Color-coded correlation strength
+
+Source: `~/workspace/source/app/features/analysis/infrastructure/matplotlib_chart_generator.py`
+
+## PDF Report Generation
+
+Generate comprehensive PDF reports with charts, tables, and analysis results.
+
+### Generate PDF Report
+
+```http
+GET /api/analysis/report/{analysis_id}/report/pdf
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+- Content-Type: `application/pdf`
+- Filename: `reporte_{analysis_type}_{timestamp}.pdf`
+- Streaming download
+
+### Report Contents
+
+<AccordionGroup>
+  <Accordion title="Header Section" icon="heading">
+    - Report title: "Water Quality Analysis Report"
+    - Generation timestamp
+    - User information
+  </Accordion>
+
+  <Accordion title="Analysis Metadata" icon="info-circle">
+    - Analysis ID and type
+    - Workspace and meter names
+    - Creation date
+    - Analysis parameters
+  </Accordion>
+
+  <Accordion title="Visualizations" icon="chart-line">
+    - Line charts for time-series data
+    - Bar charts for statistical summaries
+    - Heatmaps for correlation analysis
+    - Automatic chart captioning
+  </Accordion>
+
+  <Accordion title="Data Tables" icon="table">
+    - Formatted result tables
+    - Statistical summaries
+    - Sensor readings
+    - Limited to prevent excessive length
+  </Accordion>
+</AccordionGroup>
+
+### Report Customization
+
+```python
+class ReportConfig(BaseModel):
+    title: str = "Analysis Report"
+    author: str
+    subject: str
+
+class ReportSection(BaseModel):
+    title: str
+    content: str | None
+    level: int  # Heading level (1, 2, 3)
+
+class TableData(BaseModel):
+    headers: list[str]
+    rows: list[list[str]]
+```
+
+Source: `~/workspace/source/app/features/analysis/presentation/routes/report.py:31`
+
+### Example PDF Structure
+
+**Average Analysis Report:**
+1. Header with timestamp
+2. Analysis Information (ID, type, workspace, meter)
+3. Period of Analysis (start/end dates)
+4. Statistics Table (sensor, average, min, max)
+5. Bar Charts (one per sensor showing min/avg/max)
+
+**Prediction Analysis Report:**
+1. Header with timestamp
+2. Analysis Information
+3. Line Charts (historical data + predictions with different line styles)
+4. Prediction parameters and horizon
+
+**Correlation Analysis Report:**
+1. Header with timestamp
+2. Analysis Information
+3. Correlation Method (Pearson/Spearman)
+4. Heatmap visualization
+5. Correlation Matrix table
+
+## Analysis Management
+
+### Get Analysis Results
+
+```http
+GET /api/analysis/average/{workspace_id}/{meter_id}/
+Authorization: Bearer {access_token}
+```
+
+### Update Analysis
+
+Re-run analysis with updated parameters:
+
+```http
+PUT /api/analysis/average/{analysis_id}/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "start_date": "2024-02-01",
+  "end_date": "2024-02-29"
+}
+```
+
+<Note>
+  Updating an analysis re-processes the data with new parameters. The analysis status changes to `"updating"` during processing, then back to `"saved"` when complete.
+</Note>
+
+### Analysis Status
+
+```python
+class AnalysisStatus(str, Enum):
+    CREATING = "creating"  # Initial creation in progress
+    UPDATING = "updating"  # Update in progress
+    SAVED = "saved"        # Complete and ready
+    ERROR = "error"        # Processing failed
+```
+
+Source: `~/workspace/source/app/features/analysis/domain/enums.py:22`
+
+## Data Storage
+
+Analysis results are stored in Firebase:
+
+- Real-time updates during processing
+- Persistent storage of analysis configurations
+- Chart images stored separately
+- Efficient querying by workspace/meter/type
+
+Source: `~/workspace/source/app/features/analysis/infrastructure/firebase_analysis_result.py`
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Appropriate Date Ranges" icon="calendar-days">
+    Use sufficient historical data for meaningful analysis (min 30 days recommended)
+  </Card>
+  <Card title="Period Selection" icon="clock">
+    Match period type to data frequency (daily for hourly data, monthly for daily data)
+  </Card>
+  <Card title="Correlation Interpretation" icon="brain">
+    Values > 0.7 indicate strong correlation, < 0.3 weak correlation
+  </Card>
+  <Card title="Prediction Horizons" icon="forward">
+    Keep predictions short-term (7-14 days) for better accuracy
+  </Card>
+  <Card title="AI Context" icon="comments">
+    Provide specific questions to AI for better insights
+  </Card>
+  <Card title="Report Sharing" icon="file-export">
+    Use PDF reports for stakeholder communication and documentation
+  </Card>
+</CardGroup>
+
+## Example: Complete Analysis Workflow
+
+```python
+import requests
+import time
+
+API_BASE = "https://api.example.com/api"
+HEADERS = {"Authorization": f"Bearer {token}"}
+
+# 1. Create average analysis
+response = requests.post(
+    f"{API_BASE}/analysis/average/",
+    headers=HEADERS,
+    json={
+        "workspace_id": "workspace_123",
+        "meter_id": "meter_456",
+        "sensor_name": "ph",
+        "start_date": "2024-01-01",
+        "end_date": "2024-01-31"
+    }
+)
+analysis_id = response.json()["result"]["id"]
+print(f"Analysis created: {analysis_id}")
+
+# 2. Wait for analysis to complete
+time.sleep(5)
+
+# 3. Get analysis results
+results = requests.get(
+    f"{API_BASE}/analysis/average/workspace_123/meter_456/",
+    headers=HEADERS
+)
+print(f"Average pH: {results.json()['result']['data']['result'][0]['average']}")
+
+# 4. Create AI chat session
+ai_session = requests.post(
+    f"{API_BASE}/analysis/ai/{analysis_id}/session",
+    headers=HEADERS
+)
+print(f"AI session created: {ai_session.json()['session_id']}")
+
+# 5. Ask AI about results
+ai_response = requests.post(
+    f"{API_BASE}/analysis/ai/{analysis_id}/chat",
+    headers=HEADERS,
+    json={"message": "Is this pH level normal for drinking water?"}
+)
+print(f"AI: {ai_response.json()['response']}")
+
+# 6. Generate PDF report
+pdf_response = requests.get(
+    f"{API_BASE}/analysis/report/{analysis_id}/report/pdf",
+    headers=HEADERS
+)
+with open("water_quality_report.pdf", "wb") as f:
+    f.write(pdf_response.content)
+print("PDF report saved")
+```

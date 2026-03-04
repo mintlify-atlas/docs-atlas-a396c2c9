@@ -1,80 +1,381 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with the Water Quality Backend API in under 5 minutes
 ---
 
-## Get started in three steps
+This guide will walk you through setting up the Water Quality Backend API and making your first API call. You'll have a running server and successfully authenticate a user in just a few steps.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, ensure you have:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+- **Python 3.9 or higher** installed on your system
+- **pip** package manager
+- **Git** for cloning the repository
+- A **Firebase project** (we'll set this up in the steps below)
+
+<Info>
+  New to Python? Download it from [python.org](https://www.python.org/downloads/)
+</Info>
+
+## Setup Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Start by cloning the Water Quality Backend repository to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd water-quality-backend
+    ```
+
+    Verify you're in the correct directory:
+    ```bash
+    ls -la
+    ```
+
+    You should see files like `main.py`, `requirements.txt`, and the `app/` directory.
+  </Step>
+
+  <Step title="Create a Virtual Environment">
+    Create an isolated Python environment to avoid dependency conflicts:
+
+    ```bash
+    python -m venv .venv
+    ```
+
+    Activate the virtual environment:
+
+    <CodeGroup>
+    ```bash Linux/macOS
+    source .venv/bin/activate
+    ```
+
+    ```bash Windows (Command Prompt)
+    .venv\Scripts\activate.bat
+    ```
+
+    ```bash Windows (PowerShell)
+    .venv\Scripts\Activate.ps1
+    ```
+    </CodeGroup>
+
+    <Note>
+      You'll know the virtual environment is active when you see `(.venv)` at the beginning of your terminal prompt.
+    </Note>
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required Python packages using pip:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    This will install core dependencies including:
+    - **FastAPI** - Web framework
+    - **Firebase Admin SDK** - Firebase integration
+    - **Pandas, NumPy, Scikit-learn** - Data science and ML
+    - **Socket.IO** - Real-time communication
+    - **PyJWT** - JWT token handling
+
+    <Info>
+      Installation may take 2-3 minutes depending on your internet connection.
+    </Info>
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Copy the example environment file to create your own configuration:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Open `.env` in your favorite text editor and configure the following **required** variables:
+
+    ```bash .env
+    # Firebase Configuration (Required)
+    FIREBASE_API_KEY=your_firebase_api_key
+    FIREBASE_REALTIME_URL=https://your-project.firebaseio.com
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    # JWT Secret (Required)
+    SECRET_KEY=your_secret_key_here
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    # Firebase Admin SDK Credentials (Required)
+    FIREBASE_TYPE=service_account
+    FIREBASE_PROJECT_ID=your_project_id
+    FIREBASE_PRIVATE_KEY_ID=your_private_key_id
+    FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+    FIREBASE_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
+    FIREBASE_CLIENT_ID=your_client_id
+    FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+    FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+    FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+    FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/...
+    FIREBASE_UNIVERSE_DOMAIN=googleapis.com
+    ```
 
-### Step 2: Deploy your changes
+    ### Generate a Secret Key
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+    Create a secure secret key for JWT token signing:
+
+    ```bash
+    python -c 'import secrets; print(secrets.token_hex(32))'
+    ```
+
+    Copy the output and paste it as your `SECRET_KEY` in the `.env` file.
+
+    <Warning>
+      **Never commit your `.env` file to version control!** It contains sensitive credentials. The `.gitignore` file is already configured to exclude it.
+    </Warning>
+
+    ### Optional Services
+
+    For full functionality, you can also configure:
+
+    ```bash .env
+    # Weather API (Optional)
+    WEATHER_API_KEY=your_weather_api_key
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    # Push Notifications (Optional)
+    ONESIGNAL_APP_ID=your_onesignal_app_id
+    ONESIGNAL_API_KEY=your_onesignal_api_key
+    
+    # Email Service (Optional)
+    RESEND_API_KEY=your_resend_api_key
+    
+    # AI Analysis (Optional)
+    OPEN_ROUTER_KEY=your_open_router_key
+    OPEN_ROUTER_MODEL=openai/gpt-4-turbo
+    
+    # GitHub OAuth (Optional)
+    GITHUB_CLIENT_ID=your_github_client_id
+    GITHUB_CLIENT_SECRET=your_github_client_secret
+    GITHUB_CALLBACK_URL=http://localhost:8000/auth/github/callback
+    FRONTEND_ORIGIN=http://localhost:3000
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <Info>
+      The API will work with just Firebase and SECRET_KEY configured. Optional services can be added later as needed.
+    </Info>
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Start the Development Server">
+    Launch the FastAPI development server:
 
-### Step 3: Go live
+    ```bash
+    fastapi dev app
+    ```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    You should see output similar to:
 
-## Next steps
+    ```plaintext
+    INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+    INFO:     Started reloader process
+    INFO:     Started server process
+    INFO:     Waiting for application startup.
+    INFO:     Application startup complete.
+    ```
 
-Now that you have your docs running, explore these key features:
+    <Note>
+      The `fastapi dev` command enables auto-reload, so the server will automatically restart when you make code changes.
+    </Note>
 
-<CardGroup cols={2}>
+    ### Verify the Server is Running
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    Open your browser and navigate to:
+    - **API Root**: [http://localhost:8000](http://localhost:8000)
+    - **Interactive Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+    - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+    You should see the API response:
+    ```json
+    {
+      "message": "API"
+    }
+    ```
+  </Step>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+  <Step title="Make Your First API Call">
+    Now let's register a new user using the authentication endpoint.
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+    ### Register a New User
 
-</CardGroup>
+    Open a new terminal (keep the server running) and execute:
+
+    ```bash
+    curl -X POST http://localhost:8000/auth/register/ \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "user@example.com",
+        "username": "testuser",
+        "password": "SecurePass123!",
+        "phone": "+1234567890"
+      }'
+    ```
+
+    **Expected Response:**
+    ```json
+    {
+      "message": "Registered successfully"
+    }
+    ```
+
+    <Note>
+      The password must meet security requirements: at least 8 characters, including uppercase, lowercase, numbers, and special characters.
+    </Note>
+
+    ### Login with Your User
+
+    Now authenticate and receive a JWT token:
+
+    ```bash
+    curl -X POST http://localhost:8000/auth/login/ \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "user@example.com",
+        "password": "SecurePass123!"
+      }'
+    ```
+
+    **Expected Response:**
+    ```json
+    {
+      "message": "Logged in successfully",
+      "user": {
+        "uid": "abc123...",
+        "email": "user@example.com",
+        "username": "testuser",
+        "phone": "+1234567890",
+        "rol": "user"
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+
+    ### Use the Token for Authenticated Requests
+
+    Copy the `token` from the response and use it in subsequent requests:
+
+    ```bash
+    curl -X GET http://localhost:8000/users/me \
+      -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    ```
+
+    <Info>
+      The JWT token is valid for **30 days** and includes user information like `uid`, `email`, `username`, and `rol` (role).
+    </Info>
+  </Step>
+</Steps>
+
+## Alternative: Using the Interactive Docs
+
+FastAPI provides built-in interactive API documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### Try the API in Your Browser
+
+1. Navigate to [http://localhost:8000/docs](http://localhost:8000/docs)
+2. Find the **POST /auth/register/** endpoint
+3. Click "Try it out"
+4. Enter the request body:
+   ```json
+   {
+     "email": "user@example.com",
+     "username": "testuser",
+     "password": "SecurePass123!",
+     "phone": "+1234567890"
+   }
+   ```
+5. Click "Execute"
+6. View the response below
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  The interactive docs are perfect for exploring the API without needing curl or Postman!
 </Note>
+
+## What's Next?
+
+Congratulations! You've successfully:
+
+- ✅ Set up the Water Quality Backend API
+- ✅ Started the development server
+- ✅ Registered and authenticated a user
+- ✅ Received your first JWT token
+
+### Continue Learning
+
+<CardGroup cols={2}>
+  <Card
+    title="Installation Guide"
+    icon="download"
+    href="/installation"
+  >
+    Learn about production deployment with Docker and advanced configuration
+  </Card>
+
+  <Card
+    title="Authentication"
+    icon="lock"
+    href="/api/auth"
+  >
+    Explore all authentication methods including OAuth and password reset
+  </Card>
+
+  <Card
+    title="Meter Management"
+    icon="gauge"
+    href="/features/meters"
+  >
+    Create and manage water quality meters with real-time data
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api/overview"
+  >
+    Complete reference for all API endpoints and data models
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Server Won't Start
+
+**Problem:** `ModuleNotFoundError` or import errors
+
+**Solution:** Make sure your virtual environment is activated and dependencies are installed:
+```bash
+source .venv/bin/activate  # Or Windows equivalent
+pip install -r requirements.txt
+```
+
+### Firebase Connection Issues
+
+**Problem:** Firebase authentication or database errors
+
+**Solution:** Verify your Firebase credentials in `.env`:
+- Check that `FIREBASE_PRIVATE_KEY` includes the full key with `\n` for newlines
+- Ensure `FIREBASE_PROJECT_ID` matches your Firebase console
+- Verify the Realtime Database URL is correct
+
+### Registration Fails
+
+**Problem:** User registration returns validation errors
+
+**Solution:** Check password requirements:
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one special character
+
+<Warning>
+  If you see `SKIP_FIREBASE_INIT` errors, make sure this environment variable is **not** set in your `.env` file.
+</Warning>
+
+## Need Help?
+
+- **Interactive Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Postman Collection**: Check the `.postman/` directory for pre-configured requests
+- **Example Tests**: See `/tests` directory for working code examples

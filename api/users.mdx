@@ -1,0 +1,234 @@
+---
+title: 'Users'
+description: 'User profile management endpoints'
+---
+
+## Get Current User Profile
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/users/me \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Get user successfully.",
+  "user": {
+    "uid": "user123",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "phone": "+1234567890",
+    "rol": "user"
+  }
+}
+```
+</ResponseExample>
+
+Retrieve the authenticated user's profile information.
+
+**Endpoint:** `GET /users/me`
+
+**Authentication:** Required (Bearer token)
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  User profile data
+  <Expandable title="User Object">
+    <ResponseField name="uid" type="string">
+      User unique identifier
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      User's email address
+    </ResponseField>
+    <ResponseField name="username" type="string">
+      User's username
+    </ResponseField>
+    <ResponseField name="phone" type="string">
+      User's phone number
+    </ResponseField>
+    <ResponseField name="rol" type="string">
+      User's role
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Update Current User Profile
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/users/me \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_updated",
+    "phone": "+1987654321",
+    "email": "newemail@example.com"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "User updated successfully.",
+  "user": {
+    "uid": "user123",
+    "email": "newemail@example.com",
+    "username": "john_updated",
+    "phone": "+1987654321",
+    "rol": "user"
+  }
+}
+```
+</ResponseExample>
+
+Update the authenticated user's profile information.
+
+**Endpoint:** `PUT /users/me`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+All fields are optional. Only include fields you want to update.
+
+<ParamField body="username" type="string">
+  New username
+</ParamField>
+
+<ParamField body="phone" type="string">
+  New phone number (must be valid phone format)
+</ParamField>
+
+<ParamField body="email" type="string">
+  New email address (must be valid email format)
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  Updated user profile data
+</ResponseField>
+
+---
+
+## Change Password
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/users/me/password \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "password": "NewSecurePassword123!"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "User updated password successfully.",
+  "user": {
+    "uid": "user123",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "phone": "+1234567890",
+    "rol": "user"
+  }
+}
+```
+</ResponseExample>
+
+Change the authenticated user's password.
+
+**Endpoint:** `PUT /users/me/password`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+<ParamField body="password" type="string" required>
+  New password (must meet security requirements)
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  User profile data
+</ResponseField>
+
+---
+
+## List All Users (Admin Only)
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/users/?page_token=eyJpZCI6Im5leHQifQ==" \
+  -H "Authorization: Bearer ADMIN_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Get users successfully.",
+  "users": [
+    {
+      "uid": "user123",
+      "email": "user1@example.com",
+      "username": "user1",
+      "phone": "+1234567890",
+      "rol": "user"
+    },
+    {
+      "uid": "user456",
+      "email": "user2@example.com",
+      "username": "user2",
+      "phone": "+9876543210",
+      "rol": "user"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+Retrieve all users in the system (admin only).
+
+**Endpoint:** `GET /users/`
+
+**Authentication:** Required (Bearer token with admin role)
+
+### Query Parameters
+
+<ParamField query="page_token" type="string">
+  Pagination token for fetching next page
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="users" type="array">
+  Array of user objects
+</ResponseField>

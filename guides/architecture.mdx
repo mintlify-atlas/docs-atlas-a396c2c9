@@ -1,0 +1,375 @@
+---
+title: 'Architecture'
+description: 'Understanding the Vertical Slice Architecture pattern used in the Water Quality Backend API'
+---
+
+## Overview
+
+The Water Quality Backend API is built using the **Vertical Slice Architecture** pattern, which organizes code by feature rather than by technical layer. This approach improves modularity, maintainability, and allows teams to work on features independently.
+
+## Vertical Slice Architecture
+
+### What is Vertical Slice Architecture?
+
+Unlike traditional layered architecture (presentation → business logic → data access), Vertical Slice Architecture organizes code by feature or use case. Each feature contains all the layers it needs to function independently.
+
+**Benefits:**
+- **Feature Cohesion**: All code related to a feature is in one place
+- **Reduced Coupling**: Features don't share business logic across boundaries
+- **Easier Testing**: Each feature can be tested in isolation
+- **Faster Development**: Teams can work on different features without conflicts
+- **Clear Boundaries**: Feature responsibilities are well-defined
+
+## Project Structure
+
+The API is organized into feature modules under `app/features/`:
+
+```
+app/
+├── features/
+│   ├── alerts/          # Alert management and notifications
+│   ├── analysis/        # Water quality analysis and ML predictions
+│   ├── auth/            # Authentication and authorization
+│   ├── meters/          # Water meter management
+│   ├── monitoring/      # System monitoring and metrics
+│   ├── users/           # User management
+│   └── workspaces/      # Multi-tenant workspace management
+├── share/               # Shared utilities and infrastructure
+│   ├── firebase/        # Firebase integration
+│   ├── jwt/             # JWT token handling
+│   ├── oauth/           # OAuth configuration
+│   └── socketio/        # WebSocket support
+└── __init__.py          # Application entry point
+```
+
+## Feature Module Organization
+
+Each feature follows a consistent internal structure:
+
+### Standard Structure
+
+```
+feature_name/
+├── domain/              # Business models and rules
+│   ├── model.py         # Domain entities
+│   ├── body.py          # Request/response DTOs
+│   ├── errors.py        # Feature-specific errors
+│   └── repository.py    # Repository interfaces
+├── infrastructure/      # External integrations
+│   ├── repository.py    # Repository implementations
+│   └── external.py      # Third-party API clients
+├── presentation/        # API layer
+│   ├── routes.py        # FastAPI route handlers
+│   └── depends.py       # Dependency injection
+├── services/            # Business logic
+│   └── services.py      # Service layer
+└── __init__.py          # Feature exports
+```
+
+### Layer Responsibilities
+
+<Accordion title="Domain Layer">
+  Contains the core business logic and models:
+  - **Models**: Pydantic models representing business entities
+  - **DTOs**: Request/response data transfer objects
+  - **Errors**: Custom exceptions specific to the feature
+  - **Repository Interfaces**: Abstract contracts for data access
+  
+  The domain layer has **no dependencies** on external frameworks or infrastructure.
+</Accordion>
+
+<Accordion title="Infrastructure Layer">
+  Handles external dependencies and data persistence:
+  - **Repository Implementations**: Concrete implementations using Firebase, databases, etc.
+  - **External Services**: Integration with third-party APIs (weather, notifications)
+  - **Data Mapping**: Converts between domain models and persistence formats
+  
+  This layer implements the interfaces defined in the domain layer.
+</Accordion>
+
+<Accordion title="Presentation Layer">
+  Exposes the API and handles HTTP concerns:
+  - **Routes**: FastAPI endpoint definitions with request/response handling
+  - **Dependencies**: Dependency injection setup for FastAPI
+  - **Validation**: Request validation using Pydantic
+  - **Error Handling**: HTTP exception mapping
+  
+  This layer is thin and delegates to the service layer.
+</Accordion>
+
+<Accordion title="Services Layer">
+  Orchestrates business logic across the domain:
+  - **Use Case Implementation**: Coordinates domain models and repositories
+  - **Business Rules**: Enforces complex business logic
+  - **Transaction Management**: Handles multi-step operations
+  
+  Services use the repository interfaces, not implementations.
+</Accordion>
+
+## Feature Modules
+
+### Auth Module
+**Location**: `app/features/auth/`
+
+**Responsibilities**:
+- User registration and login
+- JWT token generation and validation
+- GitHub OAuth integration
+- Password reset flow
+- Firebase authentication integration
+
+**Key Components**:
+- `services/services.py`: Authentication business logic
+- `presentation/routes.py`: Auth endpoints (`/auth/login`, `/auth/register`, `/auth/github/*`)
+
+---
+
+### Workspaces Module
+**Location**: `app/features/workspaces/`
+
+**Responsibilities**:
+- Multi-tenant workspace management
+- Workspace creation and configuration
+- User workspace associations
+- Workspace-level permissions
+
+---
+
+### Meters Module
+**Location**: `app/features/meters/`
+
+**Responsibilities**:
+- Water meter device registration
+- Meter readings and measurements
+- Meter configuration and calibration
+- Real-time data streaming
+
+---
+
+### Alerts Module
+**Location**: `app/features/alerts/`
+
+**Responsibilities**:
+- Alert rule configuration
+- Threshold monitoring
+- Alert notifications (OneSignal, Email)
+- Alert history and acknowledgment
+
+---
+
+### Users Module
+**Location**: `app/features/users/`
+
+**Responsibilities**:
+- User profile management
+- User preferences and settings
+- Role and permission management
+
+---
+
+### Analysis Module
+**Location**: `app/features/analysis/`
+
+**Responsibilities**:
+- Water quality analysis
+- Machine learning predictions
+- Statistical analysis of readings
+- Report generation (PDF)
+- Integration with AI models (OpenRouter)
+
+**Advanced Structure**:
+```
+analysis/
+├── domain/
+│   └── models/          # Nested models for complex domains
+├── infrastructure/
+├── presentation/
+│   └── routes/          # Multiple route files for large features
+└── services/
+```
+
+---
+
+### Monitoring Module
+**Location**: `app/features/monitoring/`
+
+**Responsibilities**:
+- System health checks
+- Prometheus metrics export
+- Application performance monitoring
+- Resource usage tracking
+
+## Request Flow
+
+Here's how a typical request flows through the architecture:
+
+<Steps>
+  <Step title="Request Arrives">
+    Client sends HTTP request to a feature endpoint (e.g., `POST /auth/login`)
+  </Step>
+  
+  <Step title="Presentation Layer">
+    - FastAPI route handler receives the request
+    - Request body is validated using Pydantic models
+    - Dependencies are injected (services, repositories, tokens)
+  </Step>
+  
+  <Step title="Service Layer">
+    - Route handler calls the appropriate service method
+    - Service orchestrates business logic
+    - Service uses repository interfaces to access data
+  </Step>
+  
+  <Step title="Infrastructure Layer">
+    - Repository implementation queries Firebase/database
+    - External APIs are called if needed (weather, AI)
+    - Data is mapped to domain models
+  </Step>
+  
+  <Step title="Response">
+    - Service returns domain models/DTOs
+    - Presentation layer converts to HTTP response
+    - Response is sent back to client
+  </Step>
+</Steps>
+
+### Example Flow Diagram
+
+```
+Client Request
+     |
+     v
+[Presentation Layer]
+  routes.py
+     |
+     v
+[Service Layer]
+  services.py
+     |
+     v
+[Domain Layer]      [Infrastructure Layer]
+  models.py    <-->  repository.py (Firebase)
+     |
+     v
+Response to Client
+```
+
+## Shared Infrastructure
+
+The `app/share/` directory contains cross-cutting concerns used by multiple features:
+
+- **`firebase/`**: Firebase Admin SDK initialization and configuration
+- **`jwt/`**: JWT token creation and validation utilities
+- **`oauth/`**: OAuth provider configurations (GitHub)
+- **`socketio/`**: WebSocket server for real-time updates
+- **`email/`**: Email sending utilities (Resend integration)
+- **`users/`**: Shared user models and repository
+
+<Note>
+Shared infrastructure should contain only generic utilities. Feature-specific logic should remain in the feature module.
+</Note>
+
+## Application Entry Point
+
+The application is initialized in `app/__init__.py`:
+
+```python
+from fastapi import FastAPI
+from app.features.auth import auth_router
+from app.features.workspaces import workspaces_router
+from app.features.meters import meters_router
+from app.features.alerts import alerts_router
+from app.features.users import users_router
+from app.features.analysis import analysis_router
+from app.features.monitoring import monitoring_router
+
+app = FastAPI()
+
+# Initialize Firebase
+FirebaseInitializer.initialize(FirebaseConfigImpl())
+
+# Register feature routers
+app.include_router(auth_router)
+app.include_router(workspaces_router)
+app.include_router(meters_router)
+app.include_router(alerts_router)
+app.include_router(users_router)
+app.include_router(analysis_router)
+app.include_router(monitoring_router)
+```
+
+Each feature exports its router, which is registered with the FastAPI application.
+
+## Best Practices
+
+<Warning>
+**Avoid Cross-Feature Dependencies**: Features should not import from each other. Use shared infrastructure or events for communication.
+</Warning>
+
+<Note>
+**Keep Features Focused**: Each feature should have a single, well-defined responsibility. If a feature grows too large, consider splitting it.
+</Note>
+
+### Guidelines
+
+1. **Domain Purity**: Keep domain layer free of framework dependencies
+2. **Dependency Direction**: Always point inward (Presentation → Services → Domain)
+3. **Interface Abstraction**: Use repository interfaces in services, not implementations
+4. **Feature Independence**: Each feature should be deployable independently (in theory)
+5. **Shared Carefully**: Only share truly generic utilities across features
+
+## Adding a New Feature
+
+To add a new feature to the API:
+
+<Steps>
+  <Step title="Create Feature Directory">
+    Create a new directory under `app/features/your_feature/`
+  </Step>
+  
+  <Step title="Define Domain Models">
+    Create `domain/model.py` with Pydantic models for your entities
+  </Step>
+  
+  <Step title="Create Repository Interface">
+    Define `domain/repository.py` with abstract methods
+  </Step>
+  
+  <Step title="Implement Infrastructure">
+    Create `infrastructure/repository.py` with Firebase/database implementation
+  </Step>
+  
+  <Step title="Build Service Layer">
+    Create `services/services.py` with business logic
+  </Step>
+  
+  <Step title="Add API Routes">
+    Create `presentation/routes.py` with FastAPI endpoints
+  </Step>
+  
+  <Step title="Export Router">
+    Add router to `__init__.py` and register in `app/__init__.py`
+  </Step>
+</Steps>
+
+## Technology Stack
+
+- **Framework**: FastAPI (async Python web framework)
+- **Database**: Firebase Realtime Database
+- **Authentication**: Firebase Auth + JWT
+- **Real-time**: Socket.IO for WebSocket connections
+- **AI/ML**: scikit-learn, pandas, OpenRouter API
+- **Monitoring**: Prometheus metrics
+- **Deployment**: Docker, Uvicorn ASGI server
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/guides/authentication">
+    Learn how to authenticate and authorize API requests
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Deploy the API using Docker and production configurations
+  </Card>
+</CardGroup>

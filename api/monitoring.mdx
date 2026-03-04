@@ -1,0 +1,77 @@
+---
+title: 'Monitoring'
+description: 'System monitoring and metrics endpoints'
+---
+
+## Get Prometheus Metrics
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/monitoring/metrics
+```
+</RequestExample>
+
+<ResponseExample>
+```text Success
+# HELP requests_total Número total de solicitudes
+# TYPE requests_total counter
+requests_total 1234.0
+```
+</ResponseExample>
+
+Retrieve Prometheus-formatted metrics for monitoring system health and performance.
+
+**Endpoint:** `GET /monitoring/metrics`
+
+**Authentication:** None required
+
+### Response
+
+Returns metrics in Prometheus text exposition format, including:
+
+<ResponseField name="requests_total" type="counter">
+  Total number of requests processed by the system
+</ResponseField>
+
+### Usage
+
+This endpoint is designed to be scraped by Prometheus or other monitoring systems. Configure your Prometheus instance to scrape this endpoint at regular intervals:
+
+```yaml prometheus.yml
+scrape_configs:
+  - job_name: 'water-quality-api'
+    static_configs:
+      - targets: ['api.example.com']
+    metrics_path: '/monitoring/metrics'
+    scrape_interval: 15s
+```
+
+---
+
+## Monitoring Home
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/monitoring/
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Monitoring Home"
+}
+```
+</ResponseExample>
+
+Basic monitoring endpoint to verify the monitoring service is running.
+
+**Endpoint:** `GET /monitoring/`
+
+**Authentication:** None required
+
+### Response
+
+<ResponseField name="message" type="string">
+  Status message
+</ResponseField>

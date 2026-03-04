@@ -1,0 +1,685 @@
+---
+title: Installation
+description: Complete installation guide for the Water Quality Backend API with Docker deployment options
+---
+
+This comprehensive guide covers all installation methods for the Water Quality Backend API, from local development to production Docker deployment.
+
+## Prerequisites
+
+Before installing the Water Quality Backend API, ensure you have the following:
+
+### System Requirements
+
+- **Python 3.9 or higher** (Python 3.12 recommended)
+- **pip 21.0+** for package management
+- **Git** for version control
+- **Virtual environment support** (built into Python 3.3+)
+
+### Optional Tools
+
+- **Docker** (for containerized deployment)
+- **Docker Compose** (for multi-container orchestration)
+- **Postman** or **curl** (for API testing)
+
+### External Services
+
+You'll need accounts and credentials for:
+
+1. **Firebase** (Required)
+   - Firebase Realtime Database
+   - Firebase Admin SDK credentials
+   - Get started at [firebase.google.com](https://firebase.google.com)
+
+2. **Weather API** (Optional)
+   - For weather data integration
+
+3. **OneSignal** (Optional)
+   - For push notifications
+   - Sign up at [onesignal.com](https://onesignal.com)
+
+4. **Resend** (Optional)
+   - For email notifications
+   - Sign up at [resend.com](https://resend.com)
+
+5. **OpenRouter** (Optional)
+   - For AI-powered analysis
+   - Sign up at [openrouter.ai](https://openrouter.ai)
+
+6. **GitHub OAuth** (Optional)
+   - For social authentication
+   - Create an OAuth App at [github.com/settings/developers](https://github.com/settings/developers)
+
+<Info>
+  Only Firebase credentials are required to get started. Other services can be configured later based on your needs.
+</Info>
+
+## Local Installation
+
+<Steps>
+  <Step title="Clone the Repository">
+    Start by cloning the project from your Git repository:
+
+    ```bash
+    git clone <repository-url>
+    cd water-quality-backend
+    ```
+
+    Verify the repository structure:
+    ```bash
+    ls -la
+    ```
+
+    You should see:
+    - `app/` - Application source code
+    - `main.py` - Application entry point
+    - `requirements.txt` - Python dependencies
+    - `.env.example` - Environment variable template
+    - `Dockerfile` - Docker configuration
+  </Step>
+
+  <Step title="Create Virtual Environment">
+    Create an isolated Python environment:
+
+    ```bash
+    python -m venv .venv
+    ```
+
+    Or using Python 3 explicitly:
+    ```bash
+    python3 -m venv .venv
+    ```
+
+    Activate the virtual environment:
+
+    <CodeGroup>
+    ```bash Linux/macOS
+    source .venv/bin/activate
+    ```
+
+    ```bash Windows (CMD)
+    .venv\Scripts\activate.bat
+    ```
+
+    ```bash Windows (PowerShell)
+    .venv\Scripts\Activate.ps1
+    ```
+    </CodeGroup>
+
+    Verify activation:
+    ```bash
+    which python  # Linux/macOS
+    where python  # Windows
+    ```
+
+    The output should point to the Python binary inside `.venv/`.
+  </Step>
+
+  <Step title="Install Dependencies">
+    Upgrade pip to the latest version:
+
+    ```bash
+    pip install --upgrade pip
+    ```
+
+    Install all required packages:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    This installs:
+
+    **Core Framework**
+    - `fastapi[all]>=0.100.0` - Web framework with all extras
+    - `uvicorn` - ASGI server (included with FastAPI)
+    - `python-dotenv` - Environment variable management
+
+    **Authentication & Security**
+    - `firebase-admin` - Firebase Admin SDK
+    - `PyJWT` - JSON Web Token handling
+    - `passlib[bcrypt]` - Password hashing
+
+    **Data Science & AI**
+    - `pandas` - Data manipulation
+    - `numpy` - Numerical computing
+    - `scikit-learn` - Machine learning
+    - `pydantic-ai-slim[openai]` - AI model integration
+    - `matplotlib>=3.8.0` - Data visualization
+    - `fpdf2` - PDF report generation
+
+    **Real-time & Notifications**
+    - `python-socketio[asyncio]` - WebSocket support
+    - `onesignal-python-api` - Push notifications
+    - `resend` - Email delivery
+
+    **Monitoring**
+    - `prometheus-client==0.23.1` - Metrics and monitoring
+
+    **Testing** (optional, included in requirements.txt)
+    - `pytest>=7.0.0` - Testing framework
+    - `pytest-asyncio>=0.21.0` - Async test support
+    - `pytest-cov>=4.0.0` - Code coverage
+    - `httpx>=0.24.0` - HTTP client for tests
+
+    <Note>
+      Installation may take several minutes due to the large number of dependencies, especially data science packages.
+    </Note>
+
+    ### Install Development Dependencies (Optional)
+
+    For running tests and development tools:
+
+    ```bash
+    pip install -r requirements-test.txt
+    ```
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create your environment configuration file:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Open `.env` in your text editor and configure the following variables:
+
+    ### Required Configuration
+
+    ```bash .env
+    # JWT Secret Key (Required)
+    SECRET_KEY=your_secret_key_here
+
+    # Firebase API Configuration (Required)
+    FIREBASE_API_KEY=your_firebase_api_key
+    FIREBASE_REALTIME_URL=https://your-project.firebaseio.com
+
+    # Firebase Admin SDK Credentials (Required)
+    FIREBASE_TYPE=service_account
+    FIREBASE_PROJECT_ID=your_project_id
+    FIREBASE_PRIVATE_KEY_ID=your_private_key_id
+    FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour\nPrivate\nKey\nHere\n-----END PRIVATE KEY-----\n"
+    FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+    FIREBASE_CLIENT_ID=123456789012345678901
+    FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+    FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+    FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+    FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40your-project.iam.gserviceaccount.com
+    FIREBASE_UNIVERSE_DOMAIN=googleapis.com
+    ```
+
+    ### Generate SECRET_KEY
+
+    Generate a cryptographically secure secret key:
+
+    ```bash
+    python -c 'import secrets; print(secrets.token_hex(32))'
+    ```
+
+    Copy the output and use it as your `SECRET_KEY`.
+
+    ### Optional Configuration
+
+    ```bash .env
+    # Weather API
+    WEATHER_API_KEY=your_weather_api_key
+
+    # OneSignal Push Notifications
+    ONESIGNAL_APP_ID=your_onesignal_app_id
+    ONESIGNAL_API_KEY=your_onesignal_api_key
+
+    # Email Service (Resend)
+    RESEND_API_KEY=your_resend_api_key
+
+    # AI Analysis (OpenRouter)
+    OPEN_ROUTER_KEY=your_open_router_key
+    OPEN_ROUTER_MODEL=openai/gpt-4-turbo
+
+    # GitHub OAuth
+    GITHUB_CLIENT_ID=your_github_client_id
+    GITHUB_CLIENT_SECRET=your_github_client_secret
+    GITHUB_CALLBACK_URL=http://localhost:8000/auth/github/callback
+
+    # Frontend Configuration
+    FRONTEND_ORIGIN=http://localhost:3000
+
+    # Mobile Deep Link
+    APP_DEEP_LINK=aquaminds://login-success
+
+    # OAuth State Secret
+    STATE_SECRET=your_state_secret_here
+    ```
+
+    <Warning>
+      **Security Best Practices:**
+      - Never commit `.env` to version control
+      - Use different credentials for development and production
+      - Rotate secrets regularly
+      - Keep `FIREBASE_PRIVATE_KEY` properly formatted with `\n` for newlines
+    </Warning>
+  </Step>
+
+  <Step title="Set Up Firebase">
+    ### Create a Firebase Project
+
+    1. Go to [Firebase Console](https://console.firebase.google.com/)
+    2. Click "Add project" and follow the wizard
+    3. Enable **Realtime Database**:
+       - Navigate to Build > Realtime Database
+       - Click "Create Database"
+       - Choose your location
+       - Start in **test mode** for development (update rules for production)
+
+    ### Get Firebase Admin SDK Credentials
+
+    1. In Firebase Console, go to **Project Settings** (gear icon)
+    2. Navigate to **Service accounts** tab
+    3. Click **Generate new private key**
+    4. Download the JSON file
+    5. Extract the values and add them to your `.env` file:
+
+    ```json
+    {
+      "type": "service_account",
+      "project_id": "your-project-id",
+      "private_key_id": "abc123...",
+      "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+      "client_email": "firebase-adminsdk@...",
+      "client_id": "123456789...",
+      // ... other fields
+    }
+    ```
+
+    <Note>
+      When copying `private_key` to `.env`, ensure newlines are escaped as `\n`.
+    </Note>
+
+    ### Get Firebase Web API Key
+
+    1. In **Project Settings**, go to **General** tab
+    2. Scroll to **Your apps** section
+    3. If no web app exists, click "Add app" and select Web
+    4. Copy the `apiKey` value to `FIREBASE_API_KEY` in `.env`
+
+    ### Get Realtime Database URL
+
+    1. Navigate to **Realtime Database** in Firebase Console
+    2. Copy the database URL (e.g., `https://your-project.firebaseio.com`)
+    3. Add it to `FIREBASE_REALTIME_URL` in `.env`
+  </Step>
+
+  <Step title="Run the Development Server">
+    Start the FastAPI development server:
+
+    ```bash
+    fastapi dev app
+    ```
+
+    The server will start on `http://localhost:8000` with:
+    - **Auto-reload** enabled (restarts on code changes)
+    - **Debug mode** active
+    - **Interactive docs** at `/docs`
+
+    You should see:
+    ```plaintext
+    INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+    INFO:     Started reloader process [xxxxx] using WatchFiles
+    INFO:     Started server process [xxxxx]
+    INFO:     Waiting for application startup.
+    INFO:     Application startup complete.
+    ```
+
+    ### Production Server
+
+    For production, use the production entry point:
+
+    ```bash
+    python main.py
+    ```
+
+    Or run Uvicorn directly with production settings:
+
+    ```bash
+    uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
+    ```
+  </Step>
+
+  <Step title="Verify Installation">
+    Test the API to ensure everything is working:
+
+    ### 1. Check API Root
+
+    ```bash
+    curl http://localhost:8000/
+    ```
+
+    Expected response:
+    ```json
+    {"message": "API"}
+    ```
+
+    ### 2. Access Interactive Docs
+
+    Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser.
+
+    You should see the Swagger UI with all available endpoints.
+
+    ### 3. Test Registration Endpoint
+
+    ```bash
+    curl -X POST http://localhost:8000/auth/register/ \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "test@example.com",
+        "username": "testuser",
+        "password": "TestPass123!",
+        "phone": "+1234567890"
+      }'
+    ```
+
+    Expected response:
+    ```json
+    {"message": "Registered successfully"}
+    ```
+
+    ### 4. Check Metrics Endpoint
+
+    ```bash
+    curl http://localhost:8000/metrics
+    ```
+
+    You should see Prometheus metrics output.
+
+    <Info>
+      If all tests pass, your installation is complete and the API is ready to use!
+    </Info>
+  </Step>
+</Steps>
+
+## Docker Installation
+
+Deploy the API in a containerized environment for consistency and portability.
+
+### Using Docker
+
+<Steps>
+  <Step title="Build the Docker Image">
+    Build the container image using the provided Dockerfile:
+
+    ```bash
+    docker build -t water-quality-backend .
+    ```
+
+    The Dockerfile:
+    - Uses Python 3.12 slim base image
+    - Installs system dependencies (gcc, build tools)
+    - Copies and installs Python dependencies
+    - Creates a non-root user for security
+    - Exposes port 8000
+
+    <Note>
+      The build process may take 5-10 minutes on the first run due to downloading and compiling dependencies.
+    </Note>
+  </Step>
+
+  <Step title="Run the Container">
+    Start the container with environment variables:
+
+    ```bash
+    docker run -d \
+      --name water-quality-api \
+      -p 8000:8000 \
+      --env-file .env \
+      water-quality-backend
+    ```
+
+    Or run in interactive mode:
+
+    ```bash
+    docker run -it \
+      --name water-quality-api \
+      -p 8000:8000 \
+      --env-file .env \
+      water-quality-backend
+    ```
+
+    ### View Logs
+
+    ```bash
+    docker logs -f water-quality-api
+    ```
+
+    ### Stop the Container
+
+    ```bash
+    docker stop water-quality-api
+    ```
+
+    ### Remove the Container
+
+    ```bash
+    docker rm water-quality-api
+    ```
+  </Step>
+</Steps>
+
+### Using Docker Compose
+
+For more complex deployments with multiple services:
+
+<Steps>
+  <Step title="Review docker-compose.yml">
+    The project includes a `docker-compose.yml` file:
+
+    ```yaml docker-compose.yml
+    version: '3.8'
+
+    services:
+      api:
+        build: .
+        ports:
+          - "8000:8000"
+        env_file:
+          - .env
+        restart: unless-stopped
+        volumes:
+          - ./app:/app/app
+    ```
+  </Step>
+
+  <Step title="Start Services">
+    Launch all services with Docker Compose:
+
+    ```bash
+    docker-compose up -d
+    ```
+
+    View logs:
+    ```bash
+    docker-compose logs -f
+    ```
+
+    Stop services:
+    ```bash
+    docker-compose down
+    ```
+
+    Rebuild and restart:
+    ```bash
+    docker-compose up -d --build
+    ```
+  </Step>
+</Steps>
+
+<Info>
+  Docker deployment is recommended for production environments as it ensures consistent runtime across different systems.
+</Info>
+
+## Testing the Installation
+
+Run the comprehensive test suite to verify everything works:
+
+```bash
+pip install -r requirements-test.txt
+pytest
+```
+
+Run with coverage report:
+```bash
+pytest --cov=app --cov-report=html
+```
+
+Run specific test modules:
+```bash
+pytest tests/features/auth/  # Test authentication
+pytest tests/features/meters/  # Test meter management
+```
+
+<Note>
+  The test suite includes unit tests, integration tests, and API endpoint tests across all features.
+</Note>
+
+## Troubleshooting
+
+### Python Version Issues
+
+**Problem:** `python: command not found` or wrong Python version
+
+**Solution:**
+```bash
+# Check Python version
+python --version
+python3 --version
+
+# Use python3 explicitly if needed
+python3 -m venv .venv
+python3 -m pip install -r requirements.txt
+```
+
+### Dependency Installation Failures
+
+**Problem:** Error installing `pandas`, `numpy`, or `scikit-learn`
+
+**Solution:** Install system build tools:
+
+<CodeGroup>
+```bash Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install python3-dev build-essential
+```
+
+```bash macOS
+xcode-select --install
+brew install gcc
+```
+
+```bash Windows
+# Install Microsoft C++ Build Tools
+# Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+```
+</CodeGroup>
+
+### Firebase Connection Errors
+
+**Problem:** `Firebase app initialization failed`
+
+**Solution:**
+1. Verify all Firebase credentials in `.env`
+2. Check `FIREBASE_PRIVATE_KEY` formatting (must have `\n` for newlines)
+3. Ensure Firebase Realtime Database is created and accessible
+4. Verify service account has proper permissions
+
+### Port Already in Use
+
+**Problem:** `Address already in use: port 8000`
+
+**Solution:**
+```bash
+# Find process using port 8000
+lsof -ti:8000  # macOS/Linux
+netstat -ano | findstr :8000  # Windows
+
+# Kill the process or use a different port
+fastapi dev app --port 8001
+```
+
+### Import Errors
+
+**Problem:** `ModuleNotFoundError` when starting the server
+
+**Solution:**
+1. Ensure virtual environment is activated
+2. Reinstall dependencies: `pip install -r requirements.txt`
+3. Check you're in the correct directory (project root)
+
+<Warning>
+  If you encounter persistent issues, check that your `.env` file doesn't have syntax errors and all required variables are set.
+</Warning>
+
+## Next Steps
+
+Now that installation is complete:
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart Guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Make your first API call and authenticate a user
+  </Card>
+
+  <Card
+    title="Authentication"
+    icon="lock"
+    href="/api/auth"
+  >
+    Learn about JWT tokens, OAuth, and password management
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api/overview"
+  >
+    Explore all available endpoints and data models
+  </Card>
+
+  <Card
+    title="Deployment Guide"
+    icon="cloud"
+    href="/guides/deployment"
+  >
+    Deploy to production with best practices
+  </Card>
+</CardGroup>
+
+## Production Considerations
+
+Before deploying to production:
+
+1. **Environment Variables**
+   - Use production Firebase credentials
+   - Generate new `SECRET_KEY` and `STATE_SECRET`
+   - Update `FRONTEND_ORIGIN` to production URL
+
+2. **Security**
+   - Update Firebase Realtime Database rules
+   - Enable HTTPS/TLS
+   - Configure CORS properly
+   - Use environment-specific secrets
+
+3. **Performance**
+   - Run with multiple Uvicorn workers
+   - Set up reverse proxy (Nginx)
+   - Enable caching where appropriate
+   - Monitor with Prometheus metrics
+
+4. **Monitoring**
+   - Set up log aggregation
+   - Configure alerting (Prometheus/AlertManager)
+   - Monitor `/metrics` endpoint
+
+<Info>
+  For detailed production deployment instructions, see the [Deployment Guide](/deployment).
+</Info>

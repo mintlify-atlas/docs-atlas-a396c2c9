@@ -1,0 +1,695 @@
+---
+title: 'Analysis'
+description: 'Perform statistical analysis and AI-powered insights on water quality data'
+---
+
+## Get Average Analysis
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/analysis/average/workspace123/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "",
+  "result": {
+    "id": "analysis123",
+    "type": "average",
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "status": "saved",
+    "data": {
+      "period": {
+        "start_date": "2024-01-01T00:00:00Z",
+        "end_date": "2024-01-31T23:59:59Z"
+      },
+      "result": [
+        {
+          "sensor": "ph",
+          "average": 7.2,
+          "min": 6.5,
+          "max": 8.0
+        }
+      ]
+    }
+  }
+}
+```
+</ResponseExample>
+
+Retrieve average analysis results for a meter.
+
+**Endpoint:** `GET /analysis/average/{work_id}/{meter_id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="work_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+---
+
+## Create Average Analysis
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/analysis/average/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "sensor_name": "ph",
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31",
+    "sensor_type": "ph"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Análisis generando con el id: analysis456"
+}
+```
+</ResponseExample>
+
+Create a new average analysis for sensor data.
+
+**Endpoint:** `POST /analysis/average/`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="sensor_name" type="string" required>
+  Sensor name for analysis
+</ParamField>
+
+<ParamField body="start_date" type="string" required>
+  Start date (YYYY-MM-DD format)
+</ParamField>
+
+<ParamField body="end_date" type="string" required>
+  End date (YYYY-MM-DD format)
+</ParamField>
+
+<ParamField body="sensor_type" type="string">
+  Specific sensor type to analyze: `ph`, `temperature`, `conductivity`, `tds`, `turbidity` (optional, if omitted analyzes all sensors)
+</ParamField>
+
+---
+
+## Get Average Period Analysis
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/analysis/average/period/workspace123/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "",
+  "result": {
+    "id": "analysis789",
+    "type": "average_period",
+    "data": {
+      "sensor": "ph",
+      "period": {
+        "start_date": "2024-01-01T00:00:00Z",
+        "end_date": "2024-01-31T23:59:59Z"
+      },
+      "period_type": "days",
+      "averages": [
+        {
+          "date": "2024-01-01",
+          "value": 7.1
+        },
+        {
+          "date": "2024-01-02",
+          "value": 7.3
+        }
+      ]
+    }
+  }
+}
+```
+</ResponseExample>
+
+Retrieve average period analysis (averages grouped by time period).
+
+**Endpoint:** `GET /analysis/average/period/{work_id}/{meter_id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="work_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+---
+
+## Create Average Period Analysis
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/analysis/average/period/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "sensor_name": "ph",
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31",
+    "period_type": "days",
+    "sensor_type": "ph"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Análisis generando con el id: analysis999"
+}
+```
+</ResponseExample>
+
+Create average period analysis with time grouping.
+
+**Endpoint:** `POST /analysis/average/period/`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="sensor_name" type="string" required>
+  Sensor name
+</ParamField>
+
+<ParamField body="start_date" type="string" required>
+  Start date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="end_date" type="string" required>
+  End date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="period_type" type="string" default="days">
+  Time period grouping: `days`, `months`, or `years`
+</ParamField>
+
+<ParamField body="sensor_type" type="string">
+  Specific sensor type (optional)
+</ParamField>
+
+---
+
+## Get Prediction Analysis
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/analysis/prediction/workspace123/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "",
+  "result": {
+    "id": "pred123",
+    "type": "prediction",
+    "data": {
+      "sensor": "ph",
+      "data": {
+        "labels": ["2024-01-01", "2024-01-02"],
+        "values": [7.1, 7.2]
+      },
+      "pred": {
+        "labels": ["2024-02-01", "2024-02-02"],
+        "values": [7.15, 7.25]
+      }
+    }
+  }
+}
+```
+</ResponseExample>
+
+Retrieve prediction analysis results.
+
+**Endpoint:** `GET /analysis/prediction/{work_id}/{meter_id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="work_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+---
+
+## Create Prediction Analysis
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/analysis/prediction/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "sensor_name": "ph",
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31",
+    "period_type": "days",
+    "sensor_type": "ph",
+    "ahead": 10
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Análisis generando con el id: pred456"
+}
+```
+</ResponseExample>
+
+Create future value predictions based on historical data.
+
+**Endpoint:** `POST /analysis/prediction/`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="sensor_name" type="string" required>
+  Sensor name
+</ParamField>
+
+<ParamField body="start_date" type="string" required>
+  Historical data start date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="end_date" type="string" required>
+  Historical data end date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="period_type" type="string" default="days">
+  Time period: `days`, `months`, or `years`
+</ParamField>
+
+<ParamField body="sensor_type" type="string">
+  Specific sensor type (optional)
+</ParamField>
+
+<ParamField body="ahead" type="number" default="10">
+  Number of time periods to predict ahead
+</ParamField>
+
+---
+
+## Get Correlation Analysis
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/analysis/correlation/workspace123/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "",
+  "result": {
+    "id": "corr123",
+    "type": "correlation",
+    "data": {
+      "method": "pearson",
+      "sensors": ["ph", "temperature", "conductivity"],
+      "matrix": [
+        [1.0, 0.85, 0.62],
+        [0.85, 1.0, 0.71],
+        [0.62, 0.71, 1.0]
+      ]
+    }
+  }
+}
+```
+</ResponseExample>
+
+Retrieve correlation analysis between sensors.
+
+**Endpoint:** `GET /analysis/correlation/{work_id}/{meter_id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="work_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+---
+
+## Create Correlation Analysis
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/analysis/correlation/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "sensor_name": "all",
+    "start_date": "2024-01-01",
+    "end_date": "2024-01-31",
+    "period_type": "days",
+    "sensors": ["ph", "temperature", "conductivity"],
+    "method": "pearson"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Análisis generando con el id: corr789"
+}
+```
+</ResponseExample>
+
+Create correlation analysis between multiple sensors.
+
+**Endpoint:** `POST /analysis/correlation/`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField body="sensor_name" type="string" required>
+  Sensor identifier
+</ParamField>
+
+<ParamField body="start_date" type="string" required>
+  Start date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="end_date" type="string" required>
+  End date (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="period_type" type="string" default="days">
+  Time period: `days`, `months`, or `years`
+</ParamField>
+
+<ParamField body="sensors" type="array" required>
+  Array of sensor types to correlate: `ph`, `temperature`, `conductivity`, `tds`, `turbidity`
+</ParamField>
+
+<ParamField body="method" type="string" default="pearson">
+  Correlation method: `pearson`, `spearman`, or `kendall`
+</ParamField>
+
+---
+
+## Delete Analysis
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.example.com/analysis/analysis123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Análisis eliminado"
+}
+```
+</ResponseExample>
+
+Delete an analysis.
+
+**Endpoint:** `DELETE /analysis/{id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Analysis ID to delete
+</ParamField>
+
+---
+
+## Create AI Chat Session
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/analysis/ai/analysis123/session \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "session_id": "analysis123-user123",
+  "context": "Tipo de análisis: average\nParámetros del análisis: {...}",
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+</ResponseExample>
+
+Create an AI chat session for an analysis to ask questions about the results.
+
+**Endpoint:** `POST /analysis/ai/{analysis_id}/session`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="analysis_id" type="string" required>
+  Analysis ID to discuss
+</ParamField>
+
+### Response
+
+<ResponseField name="session_id" type="string">
+  Chat session identifier
+</ResponseField>
+
+<ResponseField name="context" type="string">
+  Analysis context provided to the AI
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Session creation timestamp
+</ResponseField>
+
+---
+
+## Chat with AI About Analysis
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/analysis/ai/analysis123/chat \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What does this pH trend indicate?"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "response": "Based on the analysis data, the pH levels show a stable trend around 7.2, which indicates neutral to slightly alkaline water. This is within the normal range for most freshwater systems.",
+  "session_id": "analysis123"
+}
+```
+</ResponseExample>
+
+Send a message to the AI assistant about an analysis. Creates a session automatically if one doesn't exist.
+
+**Endpoint:** `POST /analysis/ai/{analysis_id}/chat`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="analysis_id" type="string" required>
+  Analysis ID to discuss
+</ParamField>
+
+### Request Body
+
+<ParamField body="message" type="string" required>
+  Question or message to the AI assistant
+</ParamField>
+
+### Response
+
+<ResponseField name="response" type="string">
+  AI-generated response
+</ResponseField>
+
+<ResponseField name="session_id" type="string">
+  Chat session identifier
+</ResponseField>
+
+---
+
+## Get AI Chat Session History
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/analysis/ai/analysis123/session \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "session_id": "analysis123-user123",
+  "context": "Tipo de análisis: average\nParámetros del análisis: {...}",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T11:00:00Z",
+  "messages": [
+    {
+      "id": "msg1",
+      "role": "user",
+      "content": "What does this pH trend indicate?",
+      "timestamp": "2024-01-15T10:35:00Z"
+    },
+    {
+      "id": "msg2",
+      "role": "assistant",
+      "content": "Based on the analysis data...",
+      "timestamp": "2024-01-15T10:35:05Z"
+    }
+  ],
+  "metadata": {
+    "analysis_id": "analysis123",
+    "analysis_type": "average",
+    "user_id": "user123"
+  }
+}
+```
+</ResponseExample>
+
+Retrieve the full chat history for an analysis.
+
+**Endpoint:** `GET /analysis/ai/{analysis_id}/session`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="analysis_id" type="string" required>
+  Analysis ID
+</ParamField>
+
+---
+
+## Generate PDF Report
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/analysis/analysis123/report/pdf \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  --output report.pdf
+```
+</RequestExample>
+
+Generate a comprehensive PDF report for an analysis with charts and tables.
+
+**Endpoint:** `GET /analysis/{analysis_id}/report/pdf`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="analysis_id" type="string" required>
+  Analysis ID to generate report for
+</ParamField>
+
+### Response
+
+Returns a PDF file download with:
+- Analysis metadata and configuration
+- Visualizations (line charts, bar charts, heatmaps)
+- Data tables
+- Generated timestamp and user information
+
+**Content-Type:** `application/pdf`

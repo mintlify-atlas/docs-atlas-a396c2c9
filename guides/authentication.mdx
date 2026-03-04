@@ -1,0 +1,518 @@
+---
+title: 'Authentication'
+description: 'JWT-based authentication with Firebase and GitHub OAuth integration'
+---
+
+## Overview
+
+The Water Quality Backend API uses **JWT (JSON Web Tokens)** for authentication, backed by **Firebase Authentication** for credential verification and user management. The API also supports **GitHub OAuth** for social login.
+
+## Authentication Methods
+
+The API supports three authentication methods:
+
+1. **Email/Password**: Traditional registration and login
+2. **GitHub OAuth**: Social login via GitHub
+3. **Password Reset**: Secure password recovery flow
+
+## Registration
+
+Create a new user account with email and password.
+
+### Endpoint
+
+```http
+POST /auth/register/
+```
+
+### Request Body
+
+```json
+{
+  "email": "user@example.com",
+  "username": "john_doe",
+  "password": "SecurePass123!",
+  "phone": "+1234567890"  // optional
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Registered successfully"
+}
+```
+
+### Example with cURL
+
+```bash
+curl -X POST https://api.example.com/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "username": "john_doe",
+    "password": "SecurePass123!"
+  }'
+```
+
+<Note>
+The user is automatically created in **Firebase Authentication** and assigned the `CLIENT` role by default.
+</Note>
+
+## Login
+
+Authenticate with email and password to receive a JWT access token.
+
+### Endpoint
+
+```http
+POST /auth/login/
+```
+
+### Request Body
+
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Logged in successfully",
+  "user": {
+    "uid": "firebase_uid_123",
+    "email": "user@example.com",
+    "username": "john_doe",
+    "phone": "+1234567890",
+    "rol": "client"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+### Example with cURL
+
+```bash
+curl -X POST https://api.example.com/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+### Authentication Flow
+
+<Steps>
+  <Step title="Submit Credentials">
+    Client sends email and password to `/auth/login/`
+  </Step>
+  
+  <Step title="Verify with Firebase">
+    Backend verifies credentials using Firebase Authentication API:
+    ```python
+    POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}
+    ```
+  </Step>
+  
+  <Step title="Generate JWT Token">
+    If credentials are valid, create a JWT token with user payload:
+    ```python
+    payload = {
+      "uid": user.uid,
+      "email": user.email,
+      "username": user.username,
+      "phone": user.phone,
+      "rol": user.rol,
+      "exp": time.time() + 2592000  # 30 days
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+    ```
+  </Step>
+  
+  <Step title="Return Token">
+    Send JWT token to client along with user data
+  </Step>
+</Steps>
+
+## Using Access Tokens
+
+Once authenticated, include the JWT token in the `Authorization` header for all protected endpoints.
+
+### Authorization Header
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Example Request
+
+```bash
+curl -X GET https://api.example.com/workspaces/ \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### Token Verification
+
+Protected endpoints verify the token using the `AccessToken` service:
+
+```python
+from app.share.jwt.infrastructure.access_token import AccessToken
+
+access_token = AccessToken()
+payload = access_token.validate(token)
+# Returns: {"uid": "...", "email": "...", "username": "...", "rol": "...", "exp": ...}
+```
+
+<Warning>
+Tokens expire after **30 days** (2,592,000 seconds). Clients should handle token expiration and re-authenticate.
+</Warning>
+
+## JWT Token Structure
+
+### Payload
+
+The JWT token contains the following claims:
+
+```json
+{
+  "uid": "firebase_uid_123",
+  "email": "user@example.com",
+  "username": "john_doe",
+  "phone": "+1234567890",
+  "rol": "client",
+  "exp": 1709654400
+}
+```
+
+### Claims Description
+
+- **`uid`**: Firebase user ID (unique identifier)
+- **`email`**: User's email address
+- **`username`**: User's display name
+- **`phone`**: User's phone number (optional)
+- **`rol`**: User role (`client`, `admin`, etc.)
+- **`exp`**: Expiration timestamp (Unix epoch)
+
+### Algorithm
+
+Tokens are signed using **HS256** (HMAC with SHA-256) with the `SECRET_KEY` from environment variables.
+
+## GitHub OAuth
+
+The API supports GitHub OAuth for seamless social login.
+
+### OAuth Flow
+
+<Steps>
+  <Step title="Initiate OAuth">
+    Redirect user to GitHub authorization:
+    ```http
+    GET /auth/github/login/web
+    ```
+    or for mobile apps:
+    ```http
+    GET /auth/github/login/mobile
+    ```
+  </Step>
+  
+  <Step title="GitHub Authorization">
+    User authorizes the app on GitHub and is redirected back to:
+    ```
+    /auth/github/callback?code=...&state=...
+    ```
+  </Step>
+  
+  <Step title="Exchange Code for Token">
+    Backend exchanges the authorization code for a GitHub access token:
+    ```python
+    POST https://github.com/login/oauth/access_token
+    {
+      "client_id": GITHUB_CLIENT_ID,
+      "client_secret": GITHUB_CLIENT_SECRET,
+      "code": code,
+      "redirect_uri": GITHUB_CALLBACK_URL
+    }
+    ```
+  </Step>
+  
+  <Step title="Fetch User Profile">
+    Retrieve user information from GitHub:
+    ```python
+    GET https://api.github.com/user
+    GET https://api.github.com/user/emails
+    ```
+  </Step>
+  
+  <Step title="Create or Login User">
+    If user doesn't exist, create account with GitHub email/username.
+    If user exists, log them in.
+  </Step>
+  
+  <Step title="Redirect with Token">
+    Redirect to frontend with JWT token:
+    - **Web**: `{FRONTEND_ORIGIN}?token=...&email=...&username=...`
+    - **Mobile**: `aquaminds://login-success?token=...&code=...`
+  </Step>
+</Steps>
+
+### Web OAuth Example
+
+```bash
+# Step 1: Redirect user to GitHub login
+curl -L https://api.example.com/auth/github/login/web
+
+# Step 2: User authorizes on GitHub
+# Step 3: User is redirected to frontend with token
+https://app.example.com?token=eyJhbG...&email=user@example.com&username=john_doe&rol=client&uid=abc123
+```
+
+### Mobile OAuth Example
+
+```bash
+# Step 1: Redirect user to GitHub login
+curl -L https://api.example.com/auth/github/login/mobile
+
+# Step 2: User authorizes on GitHub
+# Step 3: User is redirected to mobile app via deep link
+aquaminds://login-success?token=eyJhbG...&code=github_code
+```
+
+### State Parameter Security
+
+The OAuth flow uses a **signed state parameter** to prevent CSRF attacks:
+
+```python
+state_payload = {
+    "redirect_uri": FRONTEND_ORIGIN,
+    "exp": int(time.time()) + 600  # 10 minutes
+}
+state = sign_state(state_payload)  # HMAC-signed with STATE_SECRET
+```
+
+The state is verified on callback to ensure authenticity.
+
+<Warning>
+**Security**: The `STATE_SECRET` environment variable must be set for OAuth to work. This secret is used to sign and verify the state parameter.
+</Warning>
+
+## Password Reset Flow
+
+Secure password recovery using email verification codes.
+
+### Step 1: Request Password Reset
+
+```http
+POST /auth/request-password-reset/
+```
+
+**Request**:
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response**:
+```json
+{
+  "message": "Código de verificación enviado"
+}
+```
+
+This generates a **6-digit verification code** stored in Firebase Realtime Database with a **10-minute expiration**:
+
+```python
+reset_code = random.randint(100000, 999999)
+expire_date = datetime.now() + timedelta(minutes=10)
+
+db.reference(f"/password_reset/{user.uid}").set({
+    "code": reset_code,
+    "expires": expire_date.timestamp()
+})
+```
+
+The code is sent to the user's email via **Resend API**.
+
+### Step 2: Verify Reset Code
+
+```http
+POST /auth/verify-reset-code/
+```
+
+**Request**:
+```json
+{
+  "email": "user@example.com",
+  "code": 123456
+}
+```
+
+**Response**:
+```json
+{
+  "message": "Código de verificación válido",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+This validates the code and returns a **short-lived token** for password reset.
+
+### Step 3: Reset Password
+
+```http
+POST /auth/reset-password/?token={reset_token}
+```
+
+**Request**:
+```json
+{
+  "new_password": "NewSecurePass123!"
+}
+```
+
+**Response**:
+```json
+{
+  "message": "Contraseña actualizada con éxito",
+  "user": {
+    "uid": "firebase_uid_123",
+    "email": "user@example.com",
+    "username": "john_doe"
+  }
+}
+```
+
+### Complete Password Reset Example
+
+```bash
+# Step 1: Request reset
+curl -X POST https://api.example.com/auth/request-password-reset/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com"}'
+
+# Step 2: Verify code from email
+curl -X POST https://api.example.com/auth/verify-reset-code/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "code": 123456}'
+# Returns: {"message": "...", "token": "xyz..."}
+
+# Step 3: Reset password with token
+curl -X POST 'https://api.example.com/auth/reset-password/?token=xyz...' \
+  -H "Content-Type: application/json" \
+  -d '{"new_password": "NewSecurePass123!"}'
+```
+
+## User Roles
+
+The API supports role-based access control (RBAC):
+
+- **`client`**: Standard user (default)
+- **`admin`**: Administrative privileges
+
+Roles are stored in the JWT token and can be used for authorization:
+
+```python
+from app.share.jwt.infrastructure.access_token import AccessToken
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    payload = AccessToken().validate(token)
+    if payload["rol"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return payload
+```
+
+## Environment Configuration
+
+Authentication requires the following environment variables:
+
+<ParamField path="SECRET_KEY" type="string" required>
+  Secret key for signing JWT tokens (HS256 algorithm)
+</ParamField>
+
+<ParamField path="FIREBASE_API_KEY" type="string" required>
+  Firebase API key for authentication requests
+</ParamField>
+
+<ParamField path="GITHUB_CLIENT_ID" type="string" required>
+  GitHub OAuth app client ID
+</ParamField>
+
+<ParamField path="GITHUB_CLIENT_SECRET" type="string" required>
+  GitHub OAuth app client secret
+</ParamField>
+
+<ParamField path="GITHUB_CALLBACK_URL" type="string" required>
+  OAuth callback URL (e.g., `https://api.example.com/auth/github/callback`)
+</ParamField>
+
+<ParamField path="FRONTEND_ORIGIN" type="string" required>
+  Frontend URL for web OAuth redirects (e.g., `https://app.example.com/oauth/callback`)
+</ParamField>
+
+<ParamField path="STATE_SECRET" type="string" required>
+  Secret for HMAC-signing OAuth state parameter (prevent CSRF)
+</ParamField>
+
+<ParamField path="APP_DEEP_LINK" type="string">
+  Mobile app deep link scheme (default: `aquaminds://login-success`)
+</ParamField>
+
+See the [Environment Variables](/guides/environment) guide for complete configuration.
+
+## Error Handling
+
+The authentication endpoints return standard HTTP error codes:
+
+| Status Code | Description |
+|-------------|-------------|
+| `400` | Invalid request body or parameters |
+| `401` | Invalid credentials or expired token |
+| `404` | User not found |
+| `500` | Server error or Firebase error |
+| `502` | GitHub API communication error |
+| `504` | GitHub API timeout |
+
+### Example Error Response
+
+```json
+{
+  "detail": "Credenciales inválidas"
+}
+```
+
+## Security Best Practices
+
+<Warning>
+**Never expose `SECRET_KEY`**: Keep your JWT secret key secure and never commit it to version control.
+</Warning>
+
+<Note>
+**Use HTTPS**: Always use HTTPS in production to prevent token interception.
+</Note>
+
+### Recommendations
+
+1. **Rotate Secrets**: Periodically rotate `SECRET_KEY` and `STATE_SECRET`
+2. **Short Expiration**: Consider shorter token expiration for sensitive applications
+3. **Refresh Tokens**: Implement refresh tokens for better security (currently not implemented)
+4. **Rate Limiting**: Add rate limiting to prevent brute force attacks
+5. **Password Complexity**: Enforce strong password requirements
+6. **Email Verification**: Consider adding email verification for new registrations
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="gear" href="/guides/environment">
+    Configure Firebase, GitHub OAuth, and other auth settings
+  </Card>
+  
+  <Card title="API Reference" icon="book" href="/api/authentication">
+    Explore all authentication endpoints in detail
+  </Card>
+</CardGroup>

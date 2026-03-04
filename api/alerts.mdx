@@ -1,0 +1,504 @@
+---
+title: 'Alerts'
+description: 'Configure and manage water quality alerts and notifications'
+---
+
+## List Alerts
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/alerts/?workspace_id=workspace123&type=critical" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Alerts retrieved successfully",
+  "alerts": [
+    {
+      "id": "alert123",
+      "title": "High pH Alert",
+      "type": "critical",
+      "workspace_id": "workspace123",
+      "meter_id": "meter123",
+      "owner": "user123",
+      "parameters": {
+        "ph": {
+          "min": 6.0,
+          "max": 8.5
+        }
+      },
+      "guests": ["guest@example.com"]
+    }
+  ]
+}
+```
+</ResponseExample>
+
+Retrieve alerts with optional filters.
+
+**Endpoint:** `GET /alerts/`
+
+**Authentication:** Required (Bearer token)
+
+### Query Parameters
+
+<ParamField query="workspace_id" type="string">
+  Filter by workspace ID
+</ParamField>
+
+<ParamField query="meter_id" type="string">
+  Filter by meter ID
+</ParamField>
+
+<ParamField query="type" type="string">
+  Filter by alert type: `critical` or `warning`
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="alerts" type="array">
+  Array of alert objects
+</ResponseField>
+
+---
+
+## Get Alert by ID
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/alerts/alert123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Alert retrieved successfully",
+  "alert": {
+    "id": "alert123",
+    "title": "High pH Alert",
+    "type": "critical",
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "owner": "user123",
+    "parameters": {
+      "ph": {
+        "min": 6.0,
+        "max": 8.5
+      }
+    },
+    "guests": ["guest@example.com"]
+  }
+}
+```
+</ResponseExample>
+
+Retrieve a specific alert by ID.
+
+**Endpoint:** `GET /alerts/{id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Alert ID
+</ParamField>
+
+---
+
+## Create Alert
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/alerts/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Temperature Warning",
+    "type": "warning",
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "parameters": {
+      "temperature": {
+        "min": 10.0,
+        "max": 30.0
+      }
+    },
+    "guests": ["guest1@example.com", "guest2@example.com"]
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Alert created successfully",
+  "alert": {
+    "id": "alert456",
+    "title": "Temperature Warning",
+    "type": "warning",
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "owner": "user123",
+    "parameters": {
+      "temperature": {
+        "min": 10.0,
+        "max": 30.0
+      }
+    },
+    "guests": ["guest1@example.com", "guest2@example.com"]
+  }
+}
+```
+</ResponseExample>
+
+Create a new alert for a meter.
+
+**Endpoint:** `POST /alerts/`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+<ParamField body="title" type="string" required>
+  Alert title
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  Alert type: `critical` or `warning`
+</ParamField>
+
+<ParamField body="workspace_id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField body="meter_id" type="string" required>
+  Meter ID to monitor
+</ParamField>
+
+<ParamField body="parameters" type="object" required>
+  Alert threshold parameters (sensor min/max values)
+  <Expandable title="Parameters Example">
+    ```json
+    {
+      "ph": { "min": 6.0, "max": 8.5 },
+      "temperature": { "min": 10.0, "max": 30.0 },
+      "conductivity": { "min": 100, "max": 1000 },
+      "tds": { "min": 50, "max": 500 },
+      "turbidity": { "min": 0, "max": 5 }
+    }
+    ```
+  </Expandable>
+</ParamField>
+
+<ParamField body="guests" type="array" required>
+  Array of email addresses to notify when alert is triggered
+</ParamField>
+
+---
+
+## Update Alert
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/alerts/alert123/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated pH Alert",
+    "type": "warning",
+    "parameters": {
+      "ph": {
+        "min": 6.5,
+        "max": 8.0
+      }
+    },
+    "guests": ["newguest@example.com"]
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Alert updated successfully",
+  "alert": {
+    "id": "alert123",
+    "title": "Updated pH Alert",
+    "type": "warning",
+    "workspace_id": "workspace123",
+    "meter_id": "meter123",
+    "owner": "user123",
+    "parameters": {
+      "ph": {
+        "min": 6.5,
+        "max": 8.0
+      }
+    },
+    "guests": ["newguest@example.com"]
+  }
+}
+```
+</ResponseExample>
+
+Update an existing alert.
+
+**Endpoint:** `PUT /alerts/{id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Alert ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="title" type="string" required>
+  Updated alert title
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  Alert type: `critical` or `warning`
+</ParamField>
+
+<ParamField body="parameters" type="object">
+  Updated threshold parameters
+</ParamField>
+
+<ParamField body="guests" type="array">
+  Updated list of email addresses to notify
+</ParamField>
+
+---
+
+## Delete Alert
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.example.com/alerts/alert123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Alert deleted successfully",
+  "alert": {
+    "id": "alert123",
+    "title": "High pH Alert"
+  }
+}
+```
+</ResponseExample>
+
+Delete an alert.
+
+**Endpoint:** `DELETE /alerts/{id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Alert ID to delete
+</ParamField>
+
+---
+
+## List Notifications
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/alerts/notifications/?type=critical&is_read=false&status=pending" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Notifications retrieved successfully",
+  "notifications": [
+    {
+      "id": "notif123",
+      "alert_id": "alert123",
+      "type": "critical",
+      "is_read": false,
+      "status": "pending",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "record_parameters": [
+        {
+          "sensor": "ph",
+          "value": 9.2
+        }
+      ],
+      "user_ids": ["user@example.com"]
+    }
+  ]
+}
+```
+</ResponseExample>
+
+Retrieve alert notifications for the authenticated user.
+
+**Endpoint:** `GET /alerts/notifications/`
+
+**Authentication:** Required (Bearer token)
+
+### Query Parameters
+
+<ParamField query="type" type="string">
+  Filter by notification type: `critical` or `warning`
+</ParamField>
+
+<ParamField query="is_read" type="boolean">
+  Filter by read status
+</ParamField>
+
+<ParamField query="status" type="string" default="pending">
+  Filter by status: `pending`, `accepted`, or `rejected`
+</ParamField>
+
+<ParamField query="convert_timestamp" type="boolean" default="false">
+  Convert timestamps to readable format
+</ParamField>
+
+---
+
+## Get Notification by ID
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/alerts/notifications/notif123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Notification retrieved successfully",
+  "notification": {
+    "id": "notif123",
+    "alert_id": "alert123",
+    "type": "critical",
+    "is_read": false,
+    "status": "pending",
+    "timestamp": "January 15, 2024 10:30 AM",
+    "record_parameters": [
+      {
+        "sensor": "ph",
+        "value": 9.2
+      }
+    ],
+    "user_ids": ["user@example.com"]
+  }
+}
+```
+</ResponseExample>
+
+Get a specific notification by ID.
+
+**Endpoint:** `GET /alerts/notifications/{notification_id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="notification_id" type="string" required>
+  Notification ID
+</ParamField>
+
+---
+
+## Mark Notification as Read
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/alerts/notifications/notif123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Notification marked as read",
+  "notification": {
+    "id": "notif123",
+    "is_read": true
+  }
+}
+```
+</ResponseExample>
+
+Mark a notification as read.
+
+**Endpoint:** `PUT /alerts/notifications/{notification_id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="notification_id" type="string" required>
+  Notification ID
+</ParamField>
+
+---
+
+## Update Notification Status
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/alerts/notifications/status/notif123/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "accepted"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Notification status updated"
+}
+```
+</ResponseExample>
+
+Update notification status (accept or reject). For critical alerts with status `accepted`, email notifications will be sent to all guests.
+
+**Endpoint:** `PUT /alerts/notifications/status/{notification_id}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="notification_id" type="string" required>
+  Notification ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="status" type="string" required>
+  New status: `accepted` or `rejected` (cannot be `pending`)
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>

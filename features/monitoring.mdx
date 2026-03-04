@@ -1,0 +1,358 @@
+---
+title: Monitoring
+description: Prometheus metrics integration for system observability and performance monitoring
+---
+
+## Overview
+
+The Monitoring feature provides Prometheus-compatible metrics endpoints for tracking system performance, request patterns, and operational health. Integrate with your observability stack for real-time monitoring and alerting.
+
+<CardGroup cols={2}>
+  <Card title="Prometheus Compatible" icon="chart-line">
+    Standard Prometheus text format metrics
+  </Card>
+  <Card title="Request Tracking" icon="gauge">
+    Total request counters and performance metrics
+  </Card>
+</CardGroup>
+
+## Metrics Endpoint
+
+Expose metrics in Prometheus text format:
+
+```http
+GET /api/monitoring/metrics
+```
+
+**Response:**
+```text
+# HELP requests_total Total number of requests
+# TYPE requests_total counter
+requests_total 1547.0
+```
+
+<Info>
+  The metrics endpoint does not require authentication and should be accessible to your monitoring infrastructure.
+</Info>
+
+## Available Metrics
+
+### Request Counter
+
+```python
+REQUESTS = Counter("requests_total", "Total number of requests")
+```
+
+**Metric Name:** `requests_total`  
+**Type:** Counter  
+**Description:** Tracks the total number of requests to the monitoring endpoint
+
+Source: `~/workspace/source/app/features/monitoring/presentation/routes.py:7`
+
+## Prometheus Integration
+
+### Scrape Configuration
+
+Add to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'water-quality-api'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['api.example.com:443']
+    metrics_path: '/api/monitoring/metrics'
+    scheme: https
+```
+
+### Example Queries
+
+**Total requests:**
+```promql
+requests_total
+```
+
+**Request rate (per second):**
+```promql
+rate(requests_total[5m])
+```
+
+**Request increase over time:**
+```promql
+increase(requests_total[1h])
+```
+
+## Grafana Dashboard
+
+Create visualizations for your metrics:
+
+```json
+{
+  "panels": [
+    {
+      "title": "Total Requests",
+      "targets": [
+        {
+          "expr": "requests_total",
+          "legendFormat": "Total Requests"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "title": "Request Rate",
+      "targets": [
+        {
+          "expr": "rate(requests_total[5m])",
+          "legendFormat": "Requests/sec"
+        }
+      ],
+      "type": "graph"
+    }
+  ]
+}
+```
+
+## Health Check
+
+Basic health check endpoint:
+
+```http
+GET /api/monitoring/
+```
+
+**Response:**
+```json
+{
+  "message": "Monitoring Home"
+}
+```
+
+<Note>
+  This endpoint increments the `requests_total` counter on each call.
+</Note>
+
+## Implementation Details
+
+### Prometheus Client
+
+The monitoring feature uses the official Prometheus Python client:
+
+```python
+from prometheus_client import Counter, generate_latest
+from fastapi import Response
+
+REQUESTS = Counter("requests_total", "Total number of requests")
+
+@monitoring_router.get("/metrics")
+async def metrics():
+    data = generate_latest()
+    return Response(content=data, media_type="text/plain")
+```
+
+### Custom Metrics
+
+Extend monitoring by adding custom metrics:
+
+```python
+from prometheus_client import Counter, Histogram, Gauge
+
+# Counter: monotonically increasing value
+ALERTS_SENT = Counter(
+    "alerts_sent_total",
+    "Total number of alerts sent",
+    ["alert_type"]  # Labels
+)
+
+# Histogram: distribution of values
+ANALYSIS_DURATION = Histogram(
+    "analysis_duration_seconds",
+    "Time spent processing analysis",
+    ["analysis_type"]
+)
+
+# Gauge: value that can go up or down
+ACTIVE_METERS = Gauge(
+    "active_meters_count",
+    "Number of currently active meters"
+)
+
+# Usage
+ALERTS_SENT.labels(alert_type="dangerous").inc()
+with ANALYSIS_DURATION.labels(analysis_type="prediction").time():
+    # Process analysis
+    pass
+ACTIVE_METERS.set(42)
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Meaningful Names" icon="tag">
+    Use descriptive metric names following Prometheus naming conventions
+  </Card>
+  <Card title="Appropriate Types" icon="chart-bar">
+    Choose the right metric type (Counter, Gauge, Histogram, Summary)
+  </Card>
+  <Card title="Strategic Labels" icon="tags">
+    Add labels for dimensions but avoid high cardinality
+  </Card>
+  <Card title="Regular Scraping" icon="clock">
+    Configure reasonable scrape intervals (10-60 seconds)
+  </Card>
+</CardGroup>
+
+## Alerting Rules
+
+Example Prometheus alerting rules:
+
+```yaml
+groups:
+  - name: water_quality_api
+    interval: 30s
+    rules:
+      - alert: HighRequestRate
+        expr: rate(requests_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request rate detected"
+          description: "Request rate is {{ $value }} requests/sec"
+      
+      - alert: NoRecentRequests
+        expr: rate(requests_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No requests received"
+          description: "API may be down or unreachable"
+```
+
+## Expanding Metrics
+
+Recommended additional metrics for production:
+
+<AccordionGroup>
+  <Accordion title="Application Metrics" icon="code">
+    - Request latency by endpoint
+    - Error rate and types
+    - Active WebSocket connections
+    - Database query performance
+  </Accordion>
+
+  <Accordion title="Business Metrics" icon="chart-simple">
+    - Alerts sent by type
+    - Analysis created/completed
+    - Active users and workspaces
+    - Meters registered and connected
+  </Accordion>
+
+  <Accordion title="Infrastructure Metrics" icon="server">
+    - Memory usage
+    - CPU utilization
+    - Database connections
+    - Cache hit rates
+  </Accordion>
+
+  <Accordion title="Water Quality Metrics" icon="droplet">
+    - Average sensor values by type
+    - Anomaly detection rates
+    - Data collection frequency
+    - Missing data percentages
+  </Accordion>
+</AccordionGroup>
+
+## Security Considerations
+
+<Warning>
+  Metrics endpoints should be accessible to monitoring infrastructure but protected from public access. Consider:
+  - Network-level access controls
+  - VPN or private network access
+  - IP allowlisting
+  - Separate authentication for metrics
+</Warning>
+
+## Example: Complete Monitoring Setup
+
+```python
+# extended_monitoring.py
+from prometheus_client import Counter, Histogram, Gauge, generate_latest
+from fastapi import APIRouter, Response
+import time
+
+monitoring_router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
+
+# Define metrics
+REQUESTS = Counter("requests_total", "Total requests")
+ALERTS = Counter("alerts_sent_total", "Total alerts sent", ["type"])
+ANALYSIS = Counter("analysis_created_total", "Total analyses created", ["type"])
+ANALYSIS_DURATION = Histogram(
+    "analysis_duration_seconds",
+    "Analysis processing time",
+    ["type"]
+)
+ACTIVE_METERS = Gauge("active_meters", "Currently connected meters")
+ACTIVE_CONNECTIONS = Gauge("websocket_connections", "Active WebSocket connections")
+
+@monitoring_router.get("/")
+async def home():
+    REQUESTS.inc()
+    return {"message": "Monitoring Home", "timestamp": time.time()}
+
+@monitoring_router.get("/metrics")
+async def metrics():
+    data = generate_latest()
+    return Response(content=data, media_type="text/plain")
+
+# Helper functions for other parts of the application
+def track_alert(alert_type: str):
+    ALERTS.labels(type=alert_type).inc()
+
+def track_analysis(analysis_type: str, duration: float):
+    ANALYSIS.labels(type=analysis_type).inc()
+    ANALYSIS_DURATION.labels(type=analysis_type).observe(duration)
+
+def update_active_meters(count: int):
+    ACTIVE_METERS.set(count)
+
+def update_websocket_connections(count: int):
+    ACTIVE_CONNECTIONS.set(count)
+```
+
+## Monitoring Dashboard Example
+
+Visualize your metrics with this Grafana dashboard JSON:
+
+```json
+{
+  "dashboard": {
+    "title": "Water Quality API Monitoring",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "targets": [{"expr": "rate(requests_total[5m])"}],
+        "type": "graph"
+      },
+      {
+        "title": "Active Meters",
+        "targets": [{"expr": "active_meters"}],
+        "type": "stat"
+      },
+      {
+        "title": "Alerts Sent by Type",
+        "targets": [{"expr": "rate(alerts_sent_total[1h])"}],
+        "type": "graph"
+      },
+      {
+        "title": "Analysis Duration (p95)",
+        "targets": [{
+          "expr": "histogram_quantile(0.95, rate(analysis_duration_seconds_bucket[5m]))"
+        }],
+        "type": "graph"
+      }
+    ]
+  }
+}
+```

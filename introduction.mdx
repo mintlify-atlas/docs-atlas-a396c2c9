@@ -1,0 +1,279 @@
+---
+title: Water Quality Backend API Documentation
+description: Complete API documentation for building water quality monitoring applications
+---
+
+<div className="relative w-full overflow-hidden bg-gradient-to-br from-[#2E86AB] via-[#A23B72] to-[#06BEE1] dark:from-[#1a5f7a] dark:via-[#6b1f49] dark:to-[#048ba8]">
+  <div className="max-w-6xl mx-auto px-6 py-16">
+    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
+      Water Quality Backend API Documentation
+    </h1>
+    <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl">
+      Build powerful water quality monitoring applications with real-time data, AI-powered analysis, and comprehensive alerts
+    </p>
+    <div className="flex flex-wrap gap-4">
+      <a
+        href="/quickstart"
+        className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-[#2E86AB] font-semibold hover:bg-gray-100 dark:bg-gray-100 dark:text-[#2E86AB] dark:hover:bg-gray-200 transition-colors"
+      >
+        Get Started
+      </a>
+      <a
+        href="/api/overview"
+        className="inline-flex items-center px-6 py-3 rounded-lg bg-white/10 text-white font-semibold hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 border border-white/30 transition-colors"
+      >
+        Explore API
+      </a>
+    </div>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+
+## Quick Start
+
+Get up and running with the Water Quality Backend API in minutes.
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the project and navigate to the source directory:
+    ```bash
+    git clone <repository-url>
+    cd water-quality-backend
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Create a virtual environment and install required packages:
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    pip install -r requirements.txt
+    ```
+  </Step>
+
+  <Step title="Configure Environment">
+    Copy the example environment file and configure your credentials:
+    ```bash
+    cp .env.example .env
+    ```
+    Edit `.env` with your Firebase, API keys, and other service credentials.
+  </Step>
+
+  <Step title="Start the Server">
+    Launch the development server:
+    ```bash
+    fastapi dev app
+    ```
+    Your API will be available at `http://localhost:8000`
+  </Step>
+</Steps>
+
+## What You Can Build
+
+The Water Quality Backend API provides everything you need to create comprehensive water monitoring solutions:
+
+<CardGroup cols={3}>
+  <Card
+    title="Real-time Monitoring"
+    icon="gauge"
+    href="/features/meters"
+  >
+    Track water quality metrics in real-time with WebSocket support and instant updates
+  </Card>
+
+  <Card
+    title="Smart Alerts"
+    icon="bell"
+    href="/features/alerts"
+  >
+    Set up intelligent alerts based on water quality thresholds with multi-channel notifications
+  </Card>
+
+  <Card
+    title="AI Analysis"
+    icon="brain"
+    href="/features/analysis"
+  >
+    Leverage AI-powered analysis for water quality predictions and insights
+  </Card>
+
+  <Card
+    title="User Management"
+    icon="users"
+    href="/features/users"
+  >
+    Complete authentication with email/password, OAuth (GitHub), and role-based access control
+  </Card>
+
+  <Card
+    title="Workspace Collaboration"
+    icon="building"
+    href="/features/workspaces"
+  >
+    Organize meters and teams with multi-tenant workspace support
+  </Card>
+
+  <Card
+    title="Performance Monitoring"
+    icon="chart-line"
+    href="/features/monitoring"
+  >
+    Built-in Prometheus metrics for monitoring API health and performance
+  </Card>
+</CardGroup>
+
+## Core Features
+
+### Authentication & Authorization
+
+Secure your application with multiple authentication methods:
+
+- **Email/Password Authentication** - Traditional signup and login with password reset
+- **OAuth Integration** - GitHub OAuth for seamless social login
+- **JWT Tokens** - Secure, stateless authentication with 30-day expiration
+- **Role-based Access Control** - Manage permissions with user roles
+
+### Water Quality Monitoring
+
+Comprehensive tools for tracking water quality:
+
+- **Meter Management** - CRUD operations for water quality meters
+- **Real-time Data** - WebSocket connections for live sensor readings
+- **Historical Data** - Query and analyze historical water quality trends
+- **Multi-parameter Support** - Track pH, temperature, turbidity, and more
+
+### Intelligent Alerts
+
+Stay informed with smart notification system:
+
+- **Threshold-based Alerts** - Automatic notifications when parameters exceed limits
+- **Multi-channel Delivery** - Email, push notifications (OneSignal), and in-app alerts
+- **Custom Alert Rules** - Define your own alert conditions and severity levels
+- **Alert History** - Track and audit all triggered alerts
+
+### AI-Powered Insights
+
+Make better decisions with machine learning:
+
+- **Predictive Analysis** - Forecast water quality trends
+- **Anomaly Detection** - Identify unusual patterns in sensor data
+- **PDF Reports** - Generate comprehensive analysis reports
+- **Custom AI Models** - Integration with OpenRouter for flexible AI capabilities
+
+## Architecture
+
+The API follows a **Vertical Slice Architecture** for maximum maintainability:
+
+```plaintext
+app/
+├── features/              # Feature-based organization
+│   ├── auth/             # Authentication
+│   ├── meters/           # Meter management
+│   ├── alerts/           # Alert system
+│   ├── users/            # User management
+│   ├── workspaces/       # Workspace management
+│   ├── analysis/         # AI analysis
+│   └── monitoring/       # Performance metrics
+│
+└── share/                # Shared utilities
+    ├── firebase/         # Firebase integration
+    ├── jwt/              # JWT token handling
+    ├── email/            # Email service
+    └── socketio/         # WebSocket support
+```
+
+Each feature module contains:
+- **domain/** - Business logic, models, and interfaces
+- **infrastructure/** - Database and external service implementations
+- **presentation/** - API routes and dependencies
+- **services/** - Application services and orchestration
+
+## Technology Stack
+
+<CardGroup cols={2}>
+  <Card title="Core Framework" icon="python">
+    - **FastAPI** - Modern, fast web framework
+    - **Python 3.9+** - Latest Python features
+    - **Uvicorn** - Lightning-fast ASGI server
+    - **Pydantic** - Data validation and serialization
+  </Card>
+
+  <Card title="Database & Storage" icon="database">
+    - **Firebase Realtime Database** - Real-time data sync
+    - **Firebase Admin SDK** - Server-side Firebase operations
+  </Card>
+
+  <Card title="AI & Data Science" icon="chart-bar">
+    - **Pandas & NumPy** - Data manipulation
+    - **Scikit-learn** - Machine learning models
+    - **PydanticAI** - AI model integration
+    - **Matplotlib** - Data visualization
+  </Card>
+
+  <Card title="Real-time & Notifications" icon="bolt">
+    - **Socket.IO** - WebSocket connections
+    - **OneSignal** - Push notifications
+    - **Resend** - Email delivery
+  </Card>
+</CardGroup>
+
+## API Endpoints Overview
+
+The API is organized into feature-based modules:
+
+| Module | Prefix | Description |
+|--------|--------|-------------|
+| Authentication | `/auth` | User registration, login, password reset, OAuth |
+| Workspaces | `/workspaces` | Workspace CRUD and management |
+| Meters | `/meters` | Water quality meter operations |
+| Alerts | `/alerts` | Alert configuration and history |
+| Users | `/users` | User profile and management |
+| Analysis | `/analysis` | AI-powered water quality analysis |
+| Monitoring | `/metrics` | Prometheus performance metrics |
+
+<Note>
+  All endpoints are documented with OpenAPI/Swagger. Access the interactive docs at `/docs` when running the server.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart Guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Follow our step-by-step guide to make your first API call
+  </Card>
+
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Detailed installation instructions including Docker deployment
+  </Card>
+
+  <Card
+    title="Authentication"
+    icon="lock"
+    href="/api/auth"
+  >
+    Learn how to authenticate and secure your API requests
+  </Card>
+
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api/overview"
+  >
+    Explore the complete API reference documentation
+  </Card>
+</CardGroup>
+
+<Info>
+  **Need Help?** Check out our examples in the `/postman` directory or explore the comprehensive test suite in `/tests`.
+</Info>
+
+</div>

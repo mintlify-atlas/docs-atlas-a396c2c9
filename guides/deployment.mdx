@@ -1,0 +1,681 @@
+---
+title: 'Deployment'
+description: 'Deploy the Water Quality Backend API using Docker, Docker Compose, or production Python server'
+---
+
+## Overview
+
+The Water Quality Backend API can be deployed in multiple ways:
+
+1. **Docker**: Containerized deployment for consistency
+2. **Docker Compose**: Full stack with monitoring (Prometheus, Grafana)
+3. **Production Python**: Direct deployment with Uvicorn
+
+All deployment methods use **Uvicorn** as the ASGI server for high-performance async request handling.
+
+## Prerequisites
+
+Before deployment, ensure you have:
+
+- Python 3.12+ (for non-Docker deployments)
+- Docker and Docker Compose (for containerized deployments)
+- Firebase project with credentials
+- Environment variables configured (see [Environment Variables](/guides/environment))
+
+## Docker Deployment
+
+The recommended deployment method using a containerized environment.
+
+### Dockerfile
+
+The application uses a multi-stage optimized Dockerfile:
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install system dependencies for scientific libraries
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    libblas-dev \
+    liblapack-dev \
+    gfortran \
+    libjpeg62-turbo \
+    zlib1g \
+    python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Build Docker Image
+
+<Steps>
+  <Step title="Clone Repository">
+    ```bash
+    git clone https://github.com/your-org/water-quality-backend.git
+    cd water-quality-backend
+    ```
+  </Step>
+  
+  <Step title="Create Environment File">
+    Create a `.env` file with your configuration:
+    ```bash
+    cp .env.example .env
+    # Edit .env with your credentials
+    ```
+    See [Environment Variables](/guides/environment) for required variables.
+  </Step>
+  
+  <Step title="Build Image">
+    ```bash
+    docker build -t water-quality-api:latest .
+    ```
+    This creates an optimized production image (~800MB including dependencies).
+  </Step>
+  
+  <Step title="Run Container">
+    ```bash
+    docker run -d \
+      --name water-quality-api \
+      -p 8000:8000 \
+      --env-file .env \
+      water-quality-api:latest
+    ```
+  </Step>
+  
+  <Step title="Verify Deployment">
+    ```bash
+    curl http://localhost:8000/
+    # Response: {"message": "API"}
+    ```
+  </Step>
+</Steps>
+
+### Docker Security Features
+
+<Note>
+The Dockerfile follows security best practices:
+- Runs as **non-root user** (`appuser`)
+- Minimal base image (`python:3.12-slim`)
+- No cache layers for sensitive data
+- Proper file permissions
+</Note>
+
+## Docker Compose Deployment
+
+Deploy the full stack with monitoring and observability.
+
+### docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    ports:
+      - "9100:9100"
+
+  app:
+    build: .
+    container_name: backend_api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+      
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+```
+
+### Services Included
+
+<Accordion title="app - API Server">
+  **Purpose**: Main FastAPI application
+  
+  **Port**: 8000
+  
+  **Configuration**: Loads environment variables from `.env` file
+  
+  **Health Check**: `GET /` returns `{"message": "API"}`
+</Accordion>
+
+<Accordion title="prometheus - Metrics Collection">
+  **Purpose**: Scrapes and stores metrics from the API
+  
+  **Port**: 9090
+  
+  **Configuration**: Requires `prometheus.yml` configuration file
+  
+  **Metrics Endpoint**: API exposes metrics at `/metrics` (via monitoring feature)
+</Accordion>
+
+<Accordion title="node_exporter - System Metrics">
+  **Purpose**: Exports hardware and OS metrics
+  
+  **Port**: 9100
+  
+  **Metrics**: CPU, memory, disk, network statistics
+</Accordion>
+
+<Accordion title="grafana - Visualization">
+  **Purpose**: Dashboard for visualizing Prometheus metrics
+  
+  **Port**: 3000
+  
+  **Default Credentials**: admin/admin (change on first login)
+</Accordion>
+
+### Deploy with Docker Compose
+
+<Steps>
+  <Step title="Create Prometheus Configuration">
+    Create `prometheus.yml` in the project root:
+    ```yaml
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+      - job_name: 'water-quality-api'
+        static_configs:
+          - targets: ['app:8000']
+      
+      - job_name: 'node'
+        static_configs:
+          - targets: ['node_exporter:9100']
+    ```
+  </Step>
+  
+  <Step title="Configure Environment">
+    Ensure `.env` file exists with all required variables.
+  </Step>
+  
+  <Step title="Start Stack">
+    ```bash
+    docker-compose up -d
+    ```
+    This starts all services in detached mode.
+  </Step>
+  
+  <Step title="Verify Services">
+    ```bash
+    # Check API
+    curl http://localhost:8000/
+    
+    # Check Prometheus
+    curl http://localhost:9090/
+    
+    # Check Grafana
+    curl http://localhost:3000/
+    ```
+  </Step>
+  
+  <Step title="View Logs">
+    ```bash
+    # All services
+    docker-compose logs -f
+    
+    # Specific service
+    docker-compose logs -f app
+    ```
+  </Step>
+</Steps>
+
+### Managing the Stack
+
+```bash
+# Start services
+docker-compose up -d
+
+# Stop services
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# View service status
+docker-compose ps
+
+# Restart specific service
+docker-compose restart app
+
+# Remove volumes (CAUTION: deletes data)
+docker-compose down -v
+```
+
+<Warning>
+**Production Note**: The default Docker Compose configuration is for development. For production:
+- Use production-grade databases (not in-memory)
+- Add restart policies (`restart: always`)
+- Configure resource limits
+- Use Docker secrets for sensitive data
+- Add health checks
+</Warning>
+
+## Production Python Deployment
+
+Deploy directly on a server without Docker.
+
+### Installation Steps
+
+<Steps>
+  <Step title="Install Python 3.12">
+    ```bash
+    # Ubuntu/Debian
+    sudo apt update
+    sudo apt install python3.12 python3.12-venv python3.12-dev
+    
+    # macOS (using Homebrew)
+    brew install python@3.12
+    ```
+  </Step>
+  
+  <Step title="Install System Dependencies">
+    Required for scientific libraries (pandas, numpy, scikit-learn):
+    ```bash
+    sudo apt install -y \
+      gcc g++ build-essential \
+      libffi-dev libssl-dev \
+      libblas-dev liblapack-dev \
+      gfortran libjpeg62-turbo zlib1g
+    ```
+  </Step>
+  
+  <Step title="Clone and Setup">
+    ```bash
+    git clone https://github.com/your-org/water-quality-backend.git
+    cd water-quality-backend
+    
+    # Create virtual environment
+    python3.12 -m venv venv
+    source venv/bin/activate
+    
+    # Install dependencies
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    ```
+  </Step>
+  
+  <Step title="Configure Environment">
+    ```bash
+    cp .env.example .env
+    # Edit .env with your production credentials
+    nano .env
+    ```
+  </Step>
+  
+  <Step title="Run Application">
+    ```bash
+    python main.py
+    ```
+    This starts Uvicorn on `http://0.0.0.0:8000`
+  </Step>
+</Steps>
+
+### Production Configuration
+
+For production, use Uvicorn with additional options:
+
+```bash
+uvicorn app:app \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --workers 4 \
+  --log-level info \
+  --access-log \
+  --no-use-colors
+```
+
+**Options Explained**:
+- `--workers 4`: Run 4 worker processes (adjust based on CPU cores)
+- `--log-level info`: Set logging verbosity
+- `--access-log`: Enable HTTP access logging
+- `--no-use-colors`: Disable ANSI colors in logs (better for file logs)
+
+### Process Management with systemd
+
+Create a systemd service for automatic startup and restart:
+
+```ini
+# /etc/systemd/system/water-quality-api.service
+[Unit]
+Description=Water Quality Backend API
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/water-quality-backend
+Environment="PATH=/opt/water-quality-backend/venv/bin"
+EnvironmentFile=/opt/water-quality-backend/.env
+ExecStart=/opt/water-quality-backend/venv/bin/uvicorn app:app \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --workers 4 \
+  --log-level info
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGQUIT
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Enable and start the service**:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable water-quality-api
+sudo systemctl start water-quality-api
+sudo systemctl status water-quality-api
+```
+
+## Reverse Proxy (Nginx)
+
+Use Nginx as a reverse proxy for SSL termination and load balancing.
+
+### Nginx Configuration
+
+```nginx
+server {
+    listen 80;
+    server_name api.example.com;
+    
+    # Redirect HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name api.example.com;
+    
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/api.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    
+    # Proxy to Uvicorn
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # WebSocket support for Socket.IO
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    
+    # Socket.IO specific
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:8000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    
+    # Monitoring endpoints (optional: restrict access)
+    location /metrics {
+        proxy_pass http://127.0.0.1:8000/metrics;
+        allow 10.0.0.0/8;  # Internal network only
+        deny all;
+    }
+}
+```
+
+**Enable the configuration**:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/water-quality-api /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## Environment Variables
+
+All deployment methods require environment variables to be configured.
+
+<Info>
+See the complete [Environment Variables Guide](/guides/environment) for all required and optional variables.
+</Info>
+
+### Critical Variables
+
+```bash
+# Firebase
+FIREBASE_ADMIN_CREDENTIALS='{...}'  # JSON credentials
+FIREBASE_API_KEY='your-api-key'
+FIREBASE_REALTIME_URL='https://your-project.firebaseio.com'
+
+# Authentication
+SECRET_KEY='your-jwt-secret-key'
+STATE_SECRET='your-oauth-state-secret'
+
+# GitHub OAuth
+GITHUB_CLIENT_ID='your-github-client-id'
+GITHUB_CLIENT_SECRET='your-github-client-secret'
+GITHUB_CALLBACK_URL='https://api.example.com/auth/github/callback'
+FRONTEND_ORIGIN='https://app.example.com/oauth/callback'
+```
+
+## Health Checks
+
+Monitor application health using built-in endpoints.
+
+### Basic Health Check
+
+```bash
+curl http://localhost:8000/
+# Response: {"message": "API"}
+```
+
+### Prometheus Metrics
+
+If monitoring is configured:
+
+```bash
+curl http://localhost:8000/metrics
+# Returns Prometheus-formatted metrics
+```
+
+### Docker Health Check
+
+Add to `Dockerfile`:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/ || exit 1
+```
+
+## Monitoring Setup
+
+The Docker Compose stack includes Prometheus and Grafana for monitoring.
+
+### Access Monitoring Tools
+
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Node Exporter**: http://localhost:9100/metrics
+
+### Configure Grafana Dashboard
+
+<Steps>
+  <Step title="Login to Grafana">
+    Navigate to http://localhost:3000 and login with `admin/admin`
+  </Step>
+  
+  <Step title="Add Prometheus Data Source">
+    - Go to Configuration → Data Sources
+    - Add Prometheus: `http://prometheus:9090`
+  </Step>
+  
+  <Step title="Import Dashboard">
+    - Go to Dashboards → Import
+    - Use dashboard ID `1860` for Node Exporter metrics
+    - Create custom dashboard for API metrics
+  </Step>
+</Steps>
+
+## Scaling Considerations
+
+### Horizontal Scaling
+
+For high-traffic deployments:
+
+1. **Multiple Workers**: Increase Uvicorn workers based on CPU cores
+   ```bash
+   uvicorn app:app --workers $(nproc)
+   ```
+
+2. **Load Balancer**: Use Nginx, HAProxy, or cloud load balancers
+
+3. **Multiple Instances**: Deploy multiple API instances behind a load balancer
+
+### Vertical Scaling
+
+Optimize resource allocation:
+
+```yaml
+# docker-compose.yml
+services:
+  app:
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<Accordion title="Port Already in Use">
+  **Error**: `Address already in use`
+  
+  **Solution**:
+  ```bash
+  # Find process using port 8000
+  sudo lsof -i :8000
+  # Kill process
+  sudo kill -9 <PID>
+  ```
+</Accordion>
+
+<Accordion title="Firebase Connection Error">
+  **Error**: `Failed to initialize Firebase`
+  
+  **Solution**:
+  - Verify `FIREBASE_ADMIN_CREDENTIALS` is valid JSON
+  - Check Firebase project permissions
+  - Ensure `FIREBASE_REALTIME_URL` is correct
+</Accordion>
+
+<Accordion title="ModuleNotFoundError">
+  **Error**: `ModuleNotFoundError: No module named 'X'`
+  
+  **Solution**:
+  ```bash
+  pip install --upgrade -r requirements.txt
+  ```
+</Accordion>
+
+<Accordion title="Docker Build Fails">
+  **Error**: Build failures with numpy/pandas
+  
+  **Solution**: Ensure system dependencies are installed in Dockerfile:
+  ```dockerfile
+  RUN apt-get install -y gcc g++ gfortran libblas-dev liblapack-dev
+  ```
+</Accordion>
+
+### Viewing Logs
+
+```bash
+# Docker
+docker logs -f water-quality-api
+
+# Docker Compose
+docker-compose logs -f app
+
+# systemd
+sudo journalctl -u water-quality-api -f
+
+# Direct Python (logs to stdout)
+python main.py 2>&1 | tee app.log
+```
+
+## Security Checklist
+
+<Warning>
+Before deploying to production:
+</Warning>
+
+- [ ] Change default passwords (Grafana, databases)
+- [ ] Use HTTPS/TLS for all connections
+- [ ] Secure environment variables (use Docker secrets or vault)
+- [ ] Enable firewall rules (only expose necessary ports)
+- [ ] Set up rate limiting
+- [ ] Configure CORS for specific origins (not `*`)
+- [ ] Use non-root user in containers
+- [ ] Regularly update dependencies
+- [ ] Enable audit logging
+- [ ] Implement backup strategy for Firebase data
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="gear" href="/guides/environment">
+    Configure all required environment variables
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line" href="/api/monitoring">
+    Learn about built-in monitoring features
+  </Card>
+</CardGroup>

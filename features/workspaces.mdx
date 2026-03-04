@@ -1,0 +1,333 @@
+---
+title: Workspaces
+description: Multi-tenancy workspace system with role-based access control
+---
+
+## Overview
+
+Workspaces provide a multi-tenancy system that enables users to organize and manage their water quality meters, data, and team members. Each workspace can be configured as private or public, with granular role-based access control.
+
+<CardGroup cols={2}>
+  <Card title="Private Workspaces" icon="lock">
+    Restricted access, visible only to the owner and invited guests
+  </Card>
+  <Card title="Public Workspaces" icon="globe">
+    Visible to all users, accessible for viewing by anyone
+  </Card>
+</CardGroup>
+
+## Workspace Types
+
+Workspaces can be configured as either **private** or **public**:
+
+<CodeGroup>
+```python Private Workspace
+from app.share.workspace.domain.model import WorkspaceType
+
+class WorkspaceCreate(BaseModel):
+    name: str
+    type: WorkspaceType = WorkspaceType.PRIVATE
+```
+
+```python Public Workspace
+workspace = WorkspaceCreate(
+    name="Public Water Monitoring",
+    type=WorkspaceType.PUBLIC
+)
+```
+</CodeGroup>
+
+### Private Workspaces
+- Accessible only to the owner and invited guests
+- Default workspace type
+- Guests must be explicitly added with defined roles
+
+### Public Workspaces
+- Visible to all authenticated users
+- Anyone can view the workspace and its data
+- Useful for public monitoring stations or open data initiatives
+
+## Role-Based Access Control
+
+The workspace system implements a comprehensive RBAC model with four primary roles:
+
+<AccordionGroup>
+  <Accordion title="Owner" icon="crown">
+    The workspace creator has full control over all aspects:
+    - Create, update, and delete the workspace
+    - Manage all meters and data
+    - Invite and remove guests
+    - Assign and modify guest roles
+    - Delete the workspace
+
+    ```python
+    class WorkspaceRolesAll(str, Enum):
+        OWNER = "owner"
+    ```
+  </Accordion>
+
+  <Accordion title="Administrator" icon="user-shield">
+    Full management capabilities except workspace deletion:
+    - Manage meters and configurations
+    - Invite and manage guests
+    - Configure alerts and notifications
+    - View all workspace data
+
+    ```python
+    class WorkspaceRoles(str, Enum):
+        ADMINISTRATOR = "administrator"
+    ```
+  </Accordion>
+
+  <Accordion title="Manager" icon="user-gear">
+    Day-to-day operational management:
+    - Create and configure alerts
+    - Manage meter settings
+    - View and analyze data
+    - Cannot invite new guests
+
+    ```python
+    class WorkspaceRoles(str, Enum):
+        MANAGER = "manager"
+    ```
+  </Accordion>
+
+  <Accordion title="Visitor" icon="eye">
+    Read-only access to workspace:
+    - View meters and their data
+    - Access analysis results
+    - Cannot modify any settings
+    - Cannot create alerts
+
+    ```python
+    class WorkspaceRoles(str, Enum):
+        VISITOR = "visitor"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## API Endpoints
+
+### Create a Workspace
+
+```http
+POST /api/workspaces/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "name": "Water Quality Lab",
+  "type": "private"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Workspace created successfully",
+  "data": {
+    "id": "workspace_123",
+    "name": "Water Quality Lab",
+    "type": "private",
+    "owner": "user_456",
+    "rol": "owner"
+  }
+}
+```
+
+### List Workspaces
+
+Get paginated list of workspaces owned by the authenticated user:
+
+```http
+GET /api/workspaces/?limit=10&index=cursor_token
+Authorization: Bearer {access_token}
+```
+
+<Note>
+  Pagination uses cursor-based navigation with `limit` (1-100) and optional `index` parameters.
+</Note>
+
+### Get Shared Workspaces
+
+Retrieve workspaces where you are a guest:
+
+```http
+GET /api/workspaces/share/?limit=10
+Authorization: Bearer {access_token}
+```
+
+### Get Public Workspaces
+
+List all public workspaces (no authentication required for viewing):
+
+```http
+GET /api/workspaces/public/?limit=10
+```
+
+## Guest Management
+
+### Invite a Guest
+
+Add a user to your workspace with a specific role:
+
+```http
+POST /api/workspaces/{workspace_id}/guest/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "guest": "user_email@example.com",
+  "rol": "manager"
+}
+```
+
+<Info>
+  When a guest is added, they automatically receive an email invitation with workspace details.
+</Info>
+
+**Email Integration:**
+- Invitation emails sent via Resend API
+- Contains workspace name, inviter information, and access link
+- Templated HTML email from `HtmlTemplate.get_guest_workspace()`
+
+### Update Guest Role
+
+```http
+PUT /api/workspaces/{workspace_id}/guest/{guest_id}
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "rol": "administrator"
+}
+```
+
+### Remove a Guest
+
+```http
+DELETE /api/workspaces/{workspace_id}/guest/{guest_id}
+Authorization: Bearer {access_token}
+```
+
+### List Workspace Guests
+
+```http
+GET /api/workspaces/{workspace_id}/guest/
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+```json
+{
+  "message": "Guests retrieved successfully",
+  "guests": [
+    {
+      "uid": "user_789",
+      "email": "colleague@example.com",
+      "username": "colleague",
+      "rol": "manager"
+    }
+  ]
+}
+```
+
+## Workspace Validation
+
+Workspaces enforce validation rules:
+
+```python
+class WorkspaceCreate(BaseModel):
+    name: str
+    type: WorkspaceType = WorkspaceType.PRIVATE
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str):
+        if len(value.strip()) < 3:
+            raise ValueError(
+                "Workspace name must be at least 3 characters."
+            )
+        if len(value.strip()) > 50:
+            raise ValueError(
+                "Workspace name cannot exceed 50 characters."
+            )
+        return value
+```
+
+<Note>
+  - **Minimum length:** 3 characters
+  - **Maximum length:** 50 characters
+  - Whitespace is trimmed before validation
+</Note>
+
+## Update a Workspace
+
+```http
+PUT /api/workspaces/{workspace_id}
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "name": "Updated Workspace Name",
+  "type": "public"
+}
+```
+
+## Delete a Workspace
+
+<Warning>
+  Only the workspace owner can delete a workspace. This action is permanent and will remove all associated meters, data, and configurations.
+</Warning>
+
+```http
+DELETE /api/workspaces/{workspace_id}
+Authorization: Bearer {access_token}
+```
+
+## Implementation Details
+
+### Repository Pattern
+
+Workspaces use the repository pattern for data access:
+
+- **WorkspaceRepository**: Core workspace CRUD operations (source:~/workspace/source/app/features/workspaces/domain/repository.py)
+- **WorkspaceGuestRepository**: Guest management operations (source:~/workspace/source/app/features/workspaces/domain/workspace_share_repo.py)
+
+### Authorization Service
+
+The workspace authorization service provides access control:
+
+```python
+class WorkspaceAuthorizationService(ABC):
+    @abstractmethod
+    def check_user_access(self, workspace_id: str, user_id: str) -> bool:
+        pass
+    
+    @abstractmethod
+    def get_user_role(self, workspace_id: str, user_id: str) -> str:
+        pass
+    
+    @abstractmethod
+    def can_access_meter(self, workspace_id: str, meter_id: str, user_id: str) -> bool:
+        pass
+```
+
+See source code: `~/workspace/source/app/features/workspaces/domain/services.py:1`
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Organize by Purpose" icon="folder-tree">
+    Create separate workspaces for different monitoring projects or locations
+  </Card>
+  <Card title="Assign Minimal Roles" icon="shield-check">
+    Grant the minimum necessary permissions to guests
+  </Card>
+  <Card title="Use Public Wisely" icon="globe">
+    Only make workspaces public if data should be openly accessible
+  </Card>
+  <Card title="Regular Audits" icon="clipboard-check">
+    Periodically review guest lists and remove inactive users
+  </Card>
+</CardGroup>

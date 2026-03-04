@@ -1,0 +1,335 @@
+---
+title: 'Authentication'
+description: 'User authentication and password management endpoints'
+---
+
+## Register User
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "username": "johndoe",
+    "password": "SecurePass123!"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Registered successfully"
+}
+```
+</ResponseExample>
+
+Create a new user account.
+
+**Endpoint:** `POST /auth/register/`
+
+**Authentication:** None required
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  User's email address (must be valid email format)
+</ParamField>
+
+<ParamField body="username" type="string" required>
+  Username for the account
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Password (must meet security requirements)
+</ParamField>
+
+<ParamField body="phone" type="string">
+  Optional phone number
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+---
+
+## Login
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Logged in successfully",
+  "user": {
+    "uid": "user123",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "phone": null,
+    "rol": "user"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+</ResponseExample>
+
+Authenticate a user and receive an access token.
+
+**Endpoint:** `POST /auth/login/`
+
+**Authentication:** None required
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  User information
+  <Expandable title="User Object">
+    <ResponseField name="uid" type="string">
+      User unique identifier
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      User's email
+    </ResponseField>
+    <ResponseField name="username" type="string">
+      User's username
+    </ResponseField>
+    <ResponseField name="phone" type="string">
+      User's phone number
+    </ResponseField>
+    <ResponseField name="rol" type="string">
+      User's role (e.g., "user", "admin")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="token" type="string">
+  JWT access token (valid for 30 days). Include this token in the Authorization header for authenticated requests.
+</ResponseField>
+
+---
+
+## GitHub OAuth Login (Web)
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/auth/github/login/web
+```
+</RequestExample>
+
+Initiate GitHub OAuth login flow for web applications.
+
+**Endpoint:** `GET /auth/github/login/web`
+
+**Authentication:** None required
+
+**Behavior:** Redirects to GitHub OAuth authorization page. After successful authentication, redirects back to the configured frontend origin with user data and token as query parameters.
+
+---
+
+## GitHub OAuth Login (Mobile)
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/auth/github/login/mobile
+```
+</RequestExample>
+
+Initiate GitHub OAuth login flow for mobile applications.
+
+**Endpoint:** `GET /auth/github/login/mobile`
+
+**Authentication:** None required
+
+**Behavior:** Redirects to GitHub OAuth authorization page. After successful authentication, redirects to the app deep link with token and code.
+
+---
+
+## GitHub OAuth Callback
+
+**Endpoint:** `GET /auth/github/callback`
+
+**Authentication:** None required
+
+**Internal Use:** This endpoint is called by GitHub after OAuth authorization. Do not call this endpoint directly.
+
+### Query Parameters
+
+<ParamField query="code" type="string" required>
+  Authorization code from GitHub
+</ParamField>
+
+<ParamField query="state" type="string">
+  State parameter for security verification
+</ParamField>
+
+---
+
+## Request Password Reset
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/auth/request-password-reset/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Código de verificación enviado"
+}
+```
+</ResponseExample>
+
+Request a password reset code to be sent via email.
+
+**Endpoint:** `POST /auth/request-password-reset/`
+
+**Authentication:** None required
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  Email address of the account to reset
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Confirmation message in Spanish
+</ResponseField>
+
+---
+
+## Verify Reset Code
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/auth/verify-reset-code/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "code": 123456
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Código de verificación válido",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+</ResponseExample>
+
+Verify the password reset code sent to the user's email.
+
+**Endpoint:** `POST /auth/verify-reset-code/`
+
+**Authentication:** None required
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField body="code" type="number" required>
+  Verification code received via email
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="token" type="string">
+  Temporary token for password reset (use in next step)
+</ResponseField>
+
+---
+
+## Reset Password
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.example.com/auth/reset-password/?token=RESET_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "new_password": "NewSecurePass123!"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Contraseña actualizada con éxito",
+  "user": {
+    "uid": "user123",
+    "email": "user@example.com",
+    "username": "johndoe"
+  }
+}
+```
+</ResponseExample>
+
+Reset the user's password using the verification token.
+
+**Endpoint:** `POST /auth/reset-password/`
+
+**Authentication:** None required (uses reset token from verification step)
+
+### Query Parameters
+
+<ParamField query="token" type="string" required>
+  Token received from verify-reset-code endpoint
+</ParamField>
+
+### Request Body
+
+<ParamField body="new_password" type="string" required>
+  New password for the account
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  Updated user information
+</ResponseField>

@@ -1,0 +1,604 @@
+---
+title: 'Environment Variables'
+description: 'Complete reference for configuring the Water Quality Backend API environment variables'
+---
+
+## Overview
+
+The Water Quality Backend API requires several environment variables for proper configuration. This guide documents all variables, their purpose, and how to configure them.
+
+## Getting Started
+
+Copy the example environment file and customize it:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` with your actual credentials and configuration.
+
+<Warning>
+**Never commit `.env` files to version control**. The `.env` file contains sensitive credentials and should be kept secure.
+</Warning>
+
+## Environment File Structure
+
+The `.env.example` file provides a template:
+
+```bash
+# Core Authentication
+FIREBASE_ADMIN_CREDENTIALS=''
+FIREBASE_API_KEY=''
+FIREBASE_REALTIME_URL=''
+SECRET_KEY=''
+
+# External Services
+WEATHER_API_KEY=''
+ONESIGNAL_APP_ID=''
+ONESIGNAL_API_KEY=''
+RESEND_API_KEY=''
+
+# AI/ML Services
+OPEN_ROUTER_KEY=""
+OPEN_ROUTER_MODEL=""
+
+# GitHub OAuth
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_CALLBACK_URL=
+FRONTEND_ORIGIN=
+APP_DEEP_LINK=aquaminds://login-success
+STATE_SECRET=
+
+# Firebase Admin SDK (Alternative)
+FIREBASE_TYPE=service_account
+FIREBASE_PROJECT_ID=
+FIREBASE_PRIVATE_KEY_ID=
+FIREBASE_PRIVATE_KEY=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_CLIENT_ID=
+FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+FIREBASE_CLIENT_X509_CERT_URL=
+FIREBASE_UNIVERSE_DOMAIN=googleapis.com
+```
+
+## Core Configuration
+
+### Authentication & Security
+
+<ParamField path="SECRET_KEY" type="string" required>
+  Secret key used to sign JWT tokens with HS256 algorithm.
+  
+  **How to generate**:
+  ```bash
+  python -c "import secrets; print(secrets.token_urlsafe(32))"
+  ```
+  
+  **Example**:
+  ```bash
+  SECRET_KEY='xK8vN2pQ9mL4jR7wE5tY3uI6oP1aS0dF'
+  ```
+  
+  <Warning>
+  Keep this secret secure. If compromised, all JWT tokens can be forged.
+  </Warning>
+</ParamField>
+
+<ParamField path="STATE_SECRET" type="string" required>
+  Secret used to HMAC-sign OAuth state parameters to prevent CSRF attacks.
+  
+  **How to generate**:
+  ```bash
+  python -c "import secrets; print(secrets.token_urlsafe(32))"
+  ```
+  
+  **Example**:
+  ```bash
+  STATE_SECRET='aB2cD4eF6gH8iJ0kL1mN3oP5qR7sT9uV'
+  ```
+  
+  **Required for**: GitHub OAuth flows
+</ParamField>
+
+## Firebase Configuration
+
+The API uses Firebase for authentication and real-time database.
+
+### Primary Method (Recommended)
+
+<ParamField path="FIREBASE_ADMIN_CREDENTIALS" type="JSON string" required>
+  Complete Firebase Admin SDK credentials as a JSON string.
+  
+  **How to get**:
+  1. Go to Firebase Console → Project Settings → Service Accounts
+  2. Click "Generate New Private Key"
+  3. Download the JSON file
+  4. Copy the entire JSON content as a string
+  
+  **Example**:
+  ```bash
+  FIREBASE_ADMIN_CREDENTIALS='{"type":"service_account","project_id":"your-project","private_key_id":"abc123","private_key":"-----BEGIN PRIVATE KEY-----\nMIIE...","client_email":"firebase-adminsdk@your-project.iam.gserviceaccount.com"}'
+  ```
+  
+  <Note>
+  Ensure the JSON is properly escaped if it contains special characters.
+  </Note>
+</ParamField>
+
+<ParamField path="FIREBASE_API_KEY" type="string" required>
+  Firebase Web API key for authentication requests.
+  
+  **How to get**: Firebase Console → Project Settings → General → Web API Key
+  
+  **Example**:
+  ```bash
+  FIREBASE_API_KEY='AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz123456'
+  ```
+  
+  **Used for**: Password authentication via Firebase Identity Toolkit
+</ParamField>
+
+<ParamField path="FIREBASE_REALTIME_URL" type="string" required>
+  Firebase Realtime Database URL.
+  
+  **Format**: `https://your-project-id.firebaseio.com`
+  
+  **Example**:
+  ```bash
+  FIREBASE_REALTIME_URL='https://water-quality-prod.firebaseio.com'
+  ```
+  
+  **How to get**: Firebase Console → Realtime Database → Data tab (URL is shown at top)
+</ParamField>
+
+### Alternative Method (Individual Fields)
+
+Instead of `FIREBASE_ADMIN_CREDENTIALS`, you can provide individual fields:
+
+<ParamField path="FIREBASE_TYPE" type="string">
+  Always `service_account` for server-side applications.
+  
+  **Default**: `service_account`
+</ParamField>
+
+<ParamField path="FIREBASE_PROJECT_ID" type="string">
+  Your Firebase project ID.
+  
+  **Example**: `water-quality-prod`
+</ParamField>
+
+<ParamField path="FIREBASE_PRIVATE_KEY_ID" type="string">
+  Private key ID from Firebase service account.
+</ParamField>
+
+<ParamField path="FIREBASE_PRIVATE_KEY" type="string">
+  RSA private key (including `-----BEGIN PRIVATE KEY-----` headers).
+  
+  **Note**: Newlines should be preserved or escaped as `\n`
+</ParamField>
+
+<ParamField path="FIREBASE_CLIENT_EMAIL" type="string">
+  Service account email address.
+  
+  **Format**: `firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com`
+</ParamField>
+
+<ParamField path="FIREBASE_CLIENT_ID" type="string">
+  Service account client ID (numeric).
+</ParamField>
+
+<ParamField path="FIREBASE_AUTH_URI" type="string">
+  OAuth2 authorization URI.
+  
+  **Default**: `https://accounts.google.com/o/oauth2/auth`
+</ParamField>
+
+<ParamField path="FIREBASE_TOKEN_URI" type="string">
+  OAuth2 token URI.
+  
+  **Default**: `https://oauth2.googleapis.com/token`
+</ParamField>
+
+<ParamField path="FIREBASE_AUTH_PROVIDER_X509_CERT_URL" type="string">
+  X.509 certificate URL for auth provider.
+  
+  **Default**: `https://www.googleapis.com/oauth2/v1/certs`
+</ParamField>
+
+<ParamField path="FIREBASE_CLIENT_X509_CERT_URL" type="string">
+  X.509 certificate URL for service account.
+  
+  **Format**: `https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com`
+</ParamField>
+
+<ParamField path="FIREBASE_UNIVERSE_DOMAIN" type="string">
+  Universe domain for Firebase.
+  
+  **Default**: `googleapis.com`
+</ParamField>
+
+## GitHub OAuth Configuration
+
+<ParamField path="GITHUB_CLIENT_ID" type="string" required>
+  GitHub OAuth App client ID.
+  
+  **How to get**:
+  1. Go to GitHub → Settings → Developer settings → OAuth Apps
+  2. Create new OAuth App or use existing
+  3. Copy the Client ID
+  
+  **Example**:
+  ```bash
+  GITHUB_CLIENT_ID='Iv1.a1b2c3d4e5f6g7h8'
+  ```
+</ParamField>
+
+<ParamField path="GITHUB_CLIENT_SECRET" type="string" required>
+  GitHub OAuth App client secret.
+  
+  **How to get**: Same location as Client ID → Generate new client secret
+  
+  **Example**:
+  ```bash
+  GITHUB_CLIENT_SECRET='abc123def456ghi789jkl012mno345pqr678stu'
+  ```
+  
+  <Warning>
+  Keep this secret secure. Never expose in client-side code.
+  </Warning>
+</ParamField>
+
+<ParamField path="GITHUB_CALLBACK_URL" type="string" required>
+  OAuth callback URL that GitHub redirects to after authorization.
+  
+  **Format**: `https://your-api-domain.com/auth/github/callback`
+  
+  **Example**:
+  ```bash
+  GITHUB_CALLBACK_URL='https://api.waterquality.com/auth/github/callback'
+  ```
+  
+  **Important**: This must match the callback URL configured in your GitHub OAuth App settings.
+</ParamField>
+
+<ParamField path="FRONTEND_ORIGIN" type="string" required>
+  Frontend application URL where users are redirected after OAuth success (web).
+  
+  **Format**: `https://your-frontend-domain.com/oauth/callback`
+  
+  **Example**:
+  ```bash
+  FRONTEND_ORIGIN='https://app.waterquality.com/oauth/callback'
+  ```
+  
+  **Used for**: Web OAuth flow redirects
+</ParamField>
+
+<ParamField path="APP_DEEP_LINK" type="string">
+  Mobile app deep link scheme for OAuth success redirects.
+  
+  **Default**: `aquaminds://login-success`
+  
+  **Example**:
+  ```bash
+  APP_DEEP_LINK='waterquality://auth/callback'
+  ```
+  
+  **Used for**: Mobile OAuth flow redirects
+</ParamField>
+
+## External Services
+
+### Weather API
+
+<ParamField path="WEATHER_API_KEY" type="string">
+  API key for weather data integration.
+  
+  **Provider**: Various (OpenWeatherMap, WeatherAPI, etc.)
+  
+  **Example**:
+  ```bash
+  WEATHER_API_KEY='a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+  ```
+  
+  **Used for**: Correlating water quality with weather conditions
+</ParamField>
+
+### Notifications
+
+<ParamField path="ONESIGNAL_APP_ID" type="string">
+  OneSignal application ID for push notifications.
+  
+  **How to get**: OneSignal Dashboard → Settings → Keys & IDs
+  
+  **Example**:
+  ```bash
+  ONESIGNAL_APP_ID='12345678-abcd-1234-efgh-1234567890ab'
+  ```
+</ParamField>
+
+<ParamField path="ONESIGNAL_API_KEY" type="string">
+  OneSignal REST API key.
+  
+  **How to get**: OneSignal Dashboard → Settings → Keys & IDs → REST API Key
+  
+  **Example**:
+  ```bash
+  ONESIGNAL_API_KEY='MzAwNjIwOTItZTNkYi00YjU2LTk2YmEtYjY4ODU2MjkyNjM0'
+  ```
+  
+  **Used for**: Sending alert notifications to mobile/web clients
+</ParamField>
+
+### Email Service
+
+<ParamField path="RESEND_API_KEY" type="string">
+  Resend API key for transactional emails.
+  
+  **How to get**: Resend Dashboard → API Keys
+  
+  **Example**:
+  ```bash
+  RESEND_API_KEY='re_123456789_abcdefghijklmnopqrstuvwxyz'
+  ```
+  
+  **Used for**: Password reset emails, alerts, notifications
+</ParamField>
+
+## AI/ML Configuration
+
+<ParamField path="OPEN_ROUTER_KEY" type="string">
+  OpenRouter API key for AI model access.
+  
+  **How to get**: OpenRouter Dashboard → API Keys
+  
+  **Example**:
+  ```bash
+  OPEN_ROUTER_KEY='sk-or-v1-1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab'
+  ```
+  
+  **Used for**: AI-powered water quality analysis and predictions
+</ParamField>
+
+<ParamField path="OPEN_ROUTER_MODEL" type="string">
+  OpenRouter model identifier to use.
+  
+  **Example**:
+  ```bash
+  OPEN_ROUTER_MODEL='openai/gpt-4-turbo'
+  ```
+  
+  **Popular models**:
+  - `openai/gpt-4-turbo`
+  - `anthropic/claude-3-opus`
+  - `meta-llama/llama-3-70b-instruct`
+</ParamField>
+
+## Optional Configuration
+
+<ParamField path="SKIP_FIREBASE_INIT" type="boolean">
+  Skip Firebase initialization (useful for testing).
+  
+  **Default**: `false`
+  
+  **Example**:
+  ```bash
+  SKIP_FIREBASE_INIT='true'
+  ```
+  
+  **Use case**: Unit tests that don't need Firebase connectivity
+</ParamField>
+
+## Configuration by Environment
+
+### Development
+
+```bash
+# .env.development
+SECRET_KEY='dev-secret-key-change-in-production'
+FIREBASE_API_KEY='your-dev-firebase-api-key'
+FIREBASE_REALTIME_URL='https://water-quality-dev.firebaseio.com'
+GITHUB_CALLBACK_URL='http://localhost:8000/auth/github/callback'
+FRONTEND_ORIGIN='http://localhost:3000/oauth/callback'
+
+# Optional: skip external services in dev
+SKIP_FIREBASE_INIT='false'
+```
+
+### Staging
+
+```bash
+# .env.staging
+SECRET_KEY='staging-secret-key-different-from-prod'
+FIREBASE_API_KEY='your-staging-firebase-api-key'
+FIREBASE_REALTIME_URL='https://water-quality-staging.firebaseio.com'
+GITHUB_CALLBACK_URL='https://api-staging.waterquality.com/auth/github/callback'
+FRONTEND_ORIGIN='https://staging.waterquality.com/oauth/callback'
+
+# Use staging services
+ONESIGNAL_APP_ID='staging-onesignal-app-id'
+RESEND_API_KEY='staging-resend-api-key'
+```
+
+### Production
+
+```bash
+# .env.production
+SECRET_KEY='production-secret-key-very-secure-32-chars-min'
+STATE_SECRET='production-state-secret-different-from-jwt'
+FIREBASE_ADMIN_CREDENTIALS='{...complete-json...}'
+FIREBASE_API_KEY='production-firebase-api-key'
+FIREBASE_REALTIME_URL='https://water-quality-prod.firebaseio.com'
+
+# Production OAuth
+GITHUB_CLIENT_ID='production-github-client-id'
+GITHUB_CLIENT_SECRET='production-github-client-secret'
+GITHUB_CALLBACK_URL='https://api.waterquality.com/auth/github/callback'
+FRONTEND_ORIGIN='https://app.waterquality.com/oauth/callback'
+APP_DEEP_LINK='waterquality://login-success'
+
+# Production services
+WEATHER_API_KEY='production-weather-api-key'
+ONESIGNAL_APP_ID='production-onesignal-app-id'
+ONESIGNAL_API_KEY='production-onesignal-api-key'
+RESEND_API_KEY='production-resend-api-key'
+OPEN_ROUTER_KEY='production-openrouter-key'
+OPEN_ROUTER_MODEL='openai/gpt-4-turbo'
+```
+
+## Docker Configuration
+
+When deploying with Docker, pass environment variables via:
+
+### Docker Run
+
+```bash
+docker run -d \
+  --name water-quality-api \
+  --env-file .env \
+  -p 8000:8000 \
+  water-quality-api:latest
+```
+
+### Docker Compose
+
+```yaml
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    # Or use environment directly:
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+    ports:
+      - "8000:8000"
+```
+
+### Docker Secrets (Production)
+
+For production, use Docker secrets:
+
+```yaml
+services:
+  app:
+    build: .
+    secrets:
+      - firebase_credentials
+      - jwt_secret
+    environment:
+      - FIREBASE_ADMIN_CREDENTIALS_FILE=/run/secrets/firebase_credentials
+      - SECRET_KEY_FILE=/run/secrets/jwt_secret
+
+secrets:
+  firebase_credentials:
+    external: true
+  jwt_secret:
+    external: true
+```
+
+## Validation
+
+Verify your configuration is correct:
+
+```bash
+# Test Firebase connection
+curl -X POST http://localhost:8000/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test"}'
+
+# Test OAuth configuration
+curl -L http://localhost:8000/auth/github/login/web
+
+# Check application health
+curl http://localhost:8000/
+```
+
+## Security Best Practices
+
+<Warning>
+**Critical Security Guidelines**:
+</Warning>
+
+1. **Never commit `.env` files** to version control
+   ```bash
+   echo ".env" >> .gitignore
+   ```
+
+2. **Use different secrets per environment**
+   - Development secrets should differ from production
+   - Rotate secrets regularly (every 90 days recommended)
+
+3. **Restrict access to `.env` files**
+   ```bash
+   chmod 600 .env
+   ```
+
+4. **Use environment variable managers** for production:
+   - AWS Secrets Manager
+   - HashiCorp Vault
+   - Azure Key Vault
+   - Google Cloud Secret Manager
+
+5. **Validate required variables on startup**:
+   The application should fail fast if critical variables are missing
+
+6. **Audit secret access**:
+   Log when secrets are accessed or modified
+
+## Troubleshooting
+
+<Accordion title="Firebase Initialization Failed">
+  **Error**: `Failed to initialize Firebase`
+  
+  **Possible causes**:
+  - Invalid `FIREBASE_ADMIN_CREDENTIALS` JSON
+  - Incorrect `FIREBASE_REALTIME_URL`
+  - Network connectivity issues
+  - Firebase project permissions
+  
+  **Solution**:
+  1. Validate JSON syntax: `python -c "import json; json.loads(open('.env').read().split('FIREBASE_ADMIN_CREDENTIALS=')[1].split('\n')[0])"`
+  2. Verify Firebase project exists and is active
+  3. Check service account has proper permissions
+</Accordion>
+
+<Accordion title="JWT Token Invalid">
+  **Error**: `Token validation failed`
+  
+  **Possible causes**:
+  - `SECRET_KEY` mismatch between token creation and validation
+  - `SECRET_KEY` changed after tokens were issued
+  
+  **Solution**:
+  - Ensure `SECRET_KEY` is consistent across all API instances
+  - Re-authenticate to get new tokens
+</Accordion>
+
+<Accordion title="OAuth State Invalid">
+  **Error**: `invalid state signature`
+  
+  **Possible causes**:
+  - `STATE_SECRET` not configured
+  - `STATE_SECRET` changed during OAuth flow
+  - State parameter tampered with
+  
+  **Solution**:
+  - Set `STATE_SECRET` in environment
+  - Ensure `STATE_SECRET` is consistent across requests
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/guides/authentication">
+    Learn how authentication uses these variables
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Deploy the API with proper configuration
+  </Card>
+</CardGroup>

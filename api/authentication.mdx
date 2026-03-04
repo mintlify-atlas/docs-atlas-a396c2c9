@@ -1,0 +1,488 @@
+---
+title: "API Authentication"
+description: "Authentication methods, JWT tokens, and OAuth integration for the Water Quality Backend API"
+---
+
+## Authentication Methods
+
+The Water Quality Backend API supports three authentication methods:
+
+1. **Email/Password Authentication** - Traditional email and password login with Firebase Auth
+2. **JWT Token Authentication** - Stateless JWT tokens for API requests
+3. **GitHub OAuth** - Social authentication via GitHub
+
+All authenticated endpoints require a valid JWT token in the `Authorization` header.
+
+## Email/Password Authentication
+
+### User Registration
+
+Create a new user account with email and password.
+
+**Endpoint**: `POST /auth/register/`
+
+**Request Body**:
+
+```json
+{
+  "email": "user@example.com",
+  "username": "johndoe",
+  "password": "SecureP@ssw0rd"
+}
+```
+
+<Note>
+Passwords must meet Firebase Auth requirements. The password is validated using the `PasswordStr` type from `~/workspace/source/app/share/users/domain/types.py`.
+</Note>
+
+**Response** (`200 OK`):
+
+```json
+{
+  "message": "Registered successfully"
+}
+```
+
+**Example with curl**:
+
+```bash
+curl -X POST https://your-api-domain.com/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "username": "johndoe",
+    "password": "SecureP@ssw0rd"
+  }'
+```
+
+### User Login
+
+Authenticate with email and password to receive a JWT token.
+
+**Endpoint**: `POST /auth/login/`
+
+**Request Body**:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "SecureP@ssw0rd"
+}
+```
+
+**Response** (`200 OK`):
+
+```json
+{
+  "message": "Logged in successfully",
+  "user": {
+    "uid": "user_unique_id",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "phone": null,
+    "rol": "client"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Example with curl**:
+
+```bash
+curl -X POST https://your-api-domain.com/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecureP@ssw0rd"
+  }'
+```
+
+**Error Responses**:
+
+- `404` - User not registered
+- `401` - Invalid credentials
+
+### Authentication Flow
+
+The login process follows these steps (from `~/workspace/source/app/features/auth/services/services.py:23-48`):
+
+<Steps>
+  <Step title="Verify User Exists">
+    The API checks if the user exists in the database by email.
+  </Step>
+  
+  <Step title="Validate Credentials with Firebase">
+    Credentials are validated against Firebase Auth using the Identity Toolkit API:
+    
+    ```
+    POST https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}
+    ```
+  </Step>
+  
+  <Step title="Generate JWT Token">
+    Upon successful authentication, a JWT token is created with user data and a 30-day expiration.
+  </Step>
+  
+  <Step title="Return User Data and Token">
+    The response includes user information and the JWT token for subsequent requests.
+  </Step>
+</Steps>
+
+## JWT Token Authentication
+
+### Token Structure
+
+JWT tokens are generated using the **HS256** algorithm and contain the following payload:
+
+```json
+{
+  "uid": "user_unique_id",
+  "email": "user@example.com",
+  "username": "johndoe",
+  "phone": null,
+  "rol": "client",
+  "exp": 1234567890.123
+}
+```
+
+**Payload Fields**:
+
+- `uid` - Unique user identifier
+- `email` - User email address
+- `username` - User's display name
+- `phone` - Phone number (optional)
+- `rol` - User role (`client`, `manager`, `administrator`)
+- `exp` - Token expiration timestamp (Unix timestamp)
+
+### Using Bearer Tokens in Requests
+
+Include the JWT token in the `Authorization` header with the `Bearer` scheme:
+
+```bash
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Example Authenticated Request**:
+
+```bash
+curl -X GET https://your-api-domain.com/workspaces \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json"
+```
+
+### Token Validation
+
+Tokens are validated using the shared secret key configured in the JWT configuration. The validation process:
+
+1. Decodes the token using the HS256 algorithm
+2. Verifies the signature with the secret key
+3. Checks the expiration timestamp
+4. Extracts the user payload
+
+See `~/workspace/source/app/share/jwt/infrastructure/access_token.py:20-23` for implementation.
+
+## Token Expiration and Refresh
+
+**Token Expiration**: JWT tokens expire after **30 days** (2,592,000 seconds)
+
+**Token Issued At**: `~/workspace/source/app/features/auth/presentation/routes.py:89`
+
+```python
+exp=time.time() + 2592000  # 30 days from now
+```
+
+<Warning>
+The API does not currently implement token refresh endpoints. When a token expires, users must re-authenticate by logging in again.
+</Warning>
+
+**Handling Expired Tokens**:
+
+When a token expires, API requests will fail with:
+
+```json
+{
+  "detail": "Token inválido"
+}
+```
+
+Clients should:
+1. Catch 401 Unauthorized responses
+2. Prompt the user to log in again
+3. Store the new token for subsequent requests
+
+## GitHub OAuth Authentication
+
+The API supports GitHub OAuth for social authentication.
+
+### OAuth Flow
+
+<Steps>
+  <Step title="Initiate OAuth Flow">
+    Redirect users to the GitHub login endpoint:
+    
+    - **Web**: `GET /auth/github/login/web`
+    - **Mobile**: `GET /auth/github/login/mobile`
+    
+    These endpoints redirect to GitHub's authorization page.
+  </Step>
+  
+  <Step title="User Authorizes Application">
+    User grants permission to the application on GitHub.
+  </Step>
+  
+  <Step title="GitHub Callback">
+    GitHub redirects back to the callback URL with an authorization code:
+    
+    `GET /auth/github/callback?code=...&state=...`
+  </Step>
+  
+  <Step title="Token Exchange and User Creation">
+    The API:
+    - Exchanges the code for a GitHub access token
+    - Fetches user profile from GitHub API
+    - Creates a user account if it doesn't exist
+    - Generates a JWT token
+    - Redirects to the frontend with the token
+  </Step>
+</Steps>
+
+### GitHub OAuth Endpoints
+
+#### Web Login
+
+```bash
+GET /auth/github/login/web
+```
+
+Redirects to GitHub OAuth and returns to the frontend origin specified in `FRONTEND_ORIGIN` environment variable.
+
+**Example**:
+
+```html
+<a href="https://your-api-domain.com/auth/github/login/web">
+  Sign in with GitHub
+</a>
+```
+
+#### Mobile Login
+
+```bash
+GET /auth/github/login/mobile
+```
+
+Redirects to GitHub OAuth and uses a deep link for mobile apps.
+
+**Deep Link Format**:
+
+```
+aquaminds://login-success?token=<jwt_token>&code=<github_code>
+```
+
+#### OAuth Callback
+
+Users are redirected here after authorizing on GitHub:
+
+```bash
+GET /auth/github/callback?code=<auth_code>&state=<signed_state>
+```
+
+**Response**: Redirects to frontend with user data and token:
+
+```
+https://frontend-origin.com?token=<jwt>&email=<email>&username=<username>&rol=<role>&uid=<uid>
+```
+
+### GitHub OAuth Security
+
+The OAuth implementation includes several security features:
+
+1. **Signed State Parameter** - Prevents CSRF attacks using HMAC-SHA256
+2. **State Expiration** - State tokens expire after 10 minutes
+3. **Redirect URI Whitelist** - Only allowed origins can receive tokens
+4. **Timeout Handling** - 10-second timeout for GitHub API requests
+
+See `~/workspace/source/app/features/auth/presentation/routes.py:48-70` for state signing/verification.
+
+<Warning>
+The `STATE_SECRET` environment variable must be configured for OAuth to work securely.
+</Warning>
+
+## Password Reset Flow
+
+The API provides a secure password reset flow using verification codes.
+
+### Step 1: Request Password Reset
+
+**Endpoint**: `POST /auth/request-password-reset/`
+
+**Request Body**:
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response** (`200 OK`):
+
+```json
+{
+  "message": "Código de verificación enviado"
+}
+```
+
+A 6-digit verification code is generated and sent to the user's email. The code expires after **10 minutes**.
+
+**Example with curl**:
+
+```bash
+curl -X POST https://your-api-domain.com/auth/request-password-reset/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com"}'
+```
+
+### Step 2: Verify Reset Code
+
+**Endpoint**: `POST /auth/verify-reset-code/`
+
+**Request Body**:
+
+```json
+{
+  "email": "user@example.com",
+  "code": 123456
+}
+```
+
+**Response** (`200 OK`):
+
+```json
+{
+  "message": "Código de verificación válido",
+  "token": "temporary_reset_token"
+}
+```
+
+The response includes a temporary token that allows password reset.
+
+**Example with curl**:
+
+```bash
+curl -X POST https://your-api-domain.com/auth/verify-reset-code/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "code": 123456
+  }'
+```
+
+### Step 3: Reset Password
+
+**Endpoint**: `POST /auth/reset-password/`
+
+**Query Parameter**: `token` - The temporary reset token from Step 2
+
+**Request Body**:
+
+```json
+{
+  "new_password": "NewSecureP@ssw0rd"
+}
+```
+
+**Response** (`200 OK`):
+
+```json
+{
+  "message": "Contraseña actualizada con éxito",
+  "user": {
+    "uid": "user_unique_id",
+    "email": "user@example.com",
+    "username": "johndoe"
+  }
+}
+```
+
+**Example with curl**:
+
+```bash
+curl -X POST "https://your-api-domain.com/auth/reset-password/?token=temporary_reset_token" \
+  -H "Content-Type: application/json" \
+  -d '{"new_password": "NewSecureP@ssw0rd"}'
+```
+
+<Info>
+Verification codes are stored in Firebase Realtime Database at `/password_reset/{uid}` and are automatically deleted after successful password reset.
+</Info>
+
+## Authentication for WebSocket Connections
+
+WebSocket connections require JWT authentication:
+
+**Meter Connections** (`/receive/` namespace):
+- Requires a meter-specific JWT token with `MeterPayload`
+- Token contains: `id_workspace`, `owner`, `id_meter`
+
+**Client Subscriptions** (`/subscribe/` namespace):
+- Requires a user JWT token with `UserPayload`
+- Must also provide `id_workspace` and `id_meter` query parameters
+- Access is validated against workspace permissions
+
+**Connection Example**:
+
+```javascript
+const socket = io('https://your-api-domain.com/subscribe/', {
+  query: {
+    access_token: 'your_jwt_token',
+    id_workspace: 'workspace_123',
+    id_meter: 'meter_456'
+  }
+});
+```
+
+See `~/workspace/source/app/share/socketio/__init__.py` for WebSocket authentication implementation.
+
+## Best Practices
+
+<Steps>
+  <Step title="Store Tokens Securely">
+    - Never store tokens in localStorage if possible (vulnerable to XSS)
+    - Use httpOnly cookies or secure storage mechanisms
+    - Never commit tokens to version control
+  </Step>
+  
+  <Step title="Handle Token Expiration">
+    - Implement automatic re-authentication when tokens expire
+    - Show user-friendly messages when authentication fails
+    - Store token expiration time to refresh proactively
+  </Step>
+  
+  <Step title="Use HTTPS">
+    - Always use HTTPS in production to prevent token interception
+    - Never send tokens over unencrypted connections
+  </Step>
+  
+  <Step title="Implement Proper Error Handling">
+    - Catch 401 Unauthorized responses
+    - Clear stored tokens on authentication failures
+    - Redirect users to login when necessary
+  </Step>
+</Steps>
+
+## Common Authentication Errors
+
+| Status Code | Error Message | Solution |
+|-------------|--------------|----------|
+| `401` | `Credenciales inválidas` | Verify email and password are correct |
+| `404` | `Usuario no registrado` | Register the user first |
+| `401` | `Token inválido` | Token is expired or malformed - re-authenticate |
+| `401` | `Código de verificación inválido` | Verification code is incorrect |
+| `401` | `Código expirado` | Request a new verification code |
+| `500` | `STATE_SECRET not configured` | Server configuration issue |
+| `504` | `Tiempo de espera agotado` | GitHub OAuth timeout - retry |
+
+## Next Steps
+
+- Explore [API endpoints](/api/overview) for workspaces, meters, and monitoring
+- Learn about [WebSocket connections](/api/overview#websocket-support-for-real-time-data)
+- Understand workspace permissions and access control

@@ -1,0 +1,252 @@
+---
+title: "API Overview"
+description: "Understanding the Water Quality Backend API architecture, request/response format, and core features"
+---
+
+## Base URL and Versioning
+
+The Water Quality Backend API is built with FastAPI and provides RESTful endpoints for managing water quality monitoring systems.
+
+```
+Base URL: https://your-api-domain.com
+```
+
+The API currently does not use version prefixes (e.g., `/v1/`). All endpoints are accessed directly from the base URL.
+
+## Request and Response Format
+
+All API requests and responses use **JSON format** with `Content-Type: application/json`.
+
+### Request Headers
+
+```bash
+Content-Type: application/json
+Authorization: Bearer <your_jwt_token>
+```
+
+### Response Structure
+
+Successful responses typically follow this structure:
+
+```json
+{
+  "message": "Operation successful",
+  "data": {
+    // Response data
+  }
+}
+```
+
+## Common HTTP Status Codes
+
+The API uses standard HTTP status codes to indicate the success or failure of requests:
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success - Request completed successfully |
+| `201` | Created - Resource created successfully |
+| `400` | Bad Request - Invalid request parameters or data |
+| `401` | Unauthorized - Missing or invalid authentication token |
+| `403` | Forbidden - Insufficient permissions |
+| `404` | Not Found - Resource not found |
+| `500` | Internal Server Error - Server encountered an error |
+| `502` | Bad Gateway - Error communicating with external services |
+| `504` | Gateway Timeout - Request timeout |
+
+## Error Response Format
+
+When an error occurs, the API returns a consistent error response:
+
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+<Warning>
+Error messages may be in Spanish in some cases. This is consistent with the current implementation in `~/workspace/source/app/features/auth/presentation/routes.py`.
+</Warning>
+
+### Example Error Responses
+
+<CodeGroup>
+
+```json Authentication Error
+{
+  "detail": "Credenciales inválidas"
+}
+```
+
+```json Not Found Error
+{
+  "detail": "Usuario no registrado"
+}
+```
+
+```json Server Error
+{
+  "detail": "Server error"
+}
+```
+
+</CodeGroup>
+
+## CORS Configuration
+
+The API is configured with permissive CORS settings to allow cross-origin requests from any domain.
+
+**CORS Settings** (from `~/workspace/source/app/__init__.py:19-26`):
+
+```python
+allow_origins: ["*"]
+allow_credentials: true
+allow_methods: ["*"]
+allow_headers: ["*"]
+expose_headers: ["Content-Disposition"]
+```
+
+<Info>
+The `Content-Disposition` header is exposed to support file downloads (e.g., PDF reports).
+</Info>
+
+## Rate Limiting
+
+Currently, the API does not implement rate limiting at the application level. However, you should implement rate limiting at the infrastructure level (reverse proxy, API gateway) for production deployments.
+
+## WebSocket Support for Real-Time Data
+
+The API provides **Socket.IO** endpoints for real-time water quality monitoring data.
+
+### WebSocket Namespaces
+
+The API implements two Socket.IO namespaces:
+
+#### 1. `/receive/` - Meter Data Ingestion
+
+Used by IoT meters to send real-time water quality measurements.
+
+**Authentication**: Requires a JWT token for meter connections
+
+**Connection Example**:
+
+```javascript
+const socket = io('https://your-api-domain.com/receive/', {
+  transports: ['websocket'],
+  extraHeaders: {
+    'access_token': 'your_meter_jwt_token'
+  }
+});
+
+socket.on('connect', () => {
+  console.log('Meter connected');
+});
+
+// Send water quality data
+socket.emit('message', {
+  temperature: 25.5,
+  ph: 7.2,
+  turbidity: 1.5,
+  // ... other parameters
+});
+```
+
+**Events**:
+- `connect` - Connection established
+- `message` - Send meter readings
+- `disconnect` - Connection closed
+- `error` - Error occurred
+
+#### 2. `/subscribe/` - Real-Time Data Subscription
+
+Used by client applications to receive real-time updates from meters.
+
+**Authentication**: Requires a user JWT token
+
+**Connection Example**:
+
+```javascript
+const socket = io('https://your-api-domain.com/subscribe/', {
+  transports: ['websocket'],
+  query: {
+    access_token: 'your_user_jwt_token',
+    id_workspace: 'workspace_id',
+    id_meter: 'meter_id'
+  }
+});
+
+socket.on('message', (data) => {
+  console.log('New water quality data:', data);
+});
+```
+
+**Events**:
+- `connect` - Subscribed to meter updates
+- `message` - Receive meter readings
+- `disconnect` - Subscription ended
+- `error` - Error occurred
+
+<Note>
+WebSocket connections require valid workspace access. Users must have `VISITOR`, `MANAGER`, or `ADMINISTRATOR` roles, or the workspace must be public.
+</Note>
+
+### WebSocket Authentication
+
+WebSocket connections support two authentication methods:
+
+1. **Header-based**: `HTTP_ACCESS_TOKEN` header
+2. **Query parameter**: `?access_token=<token>`
+
+See `~/workspace/source/app/share/socketio/__init__.py:46-71` for implementation details.
+
+## API Endpoints Overview
+
+The API is organized into the following feature modules:
+
+| Module | Base Path | Description |
+|--------|-----------|-------------|
+| **Authentication** | `/auth` | User registration, login, password reset, OAuth |
+| **Workspaces** | `/workspaces` | Workspace management and sharing |
+| **Meters** | `/meters` | Water quality meter configuration |
+| **Alerts** | `/alerts` | Alert configuration and notifications |
+| **Users** | `/users` | User profile management |
+| **Monitoring** | `/monitoring` | Real-time monitoring data |
+| **Analysis** | `/analysis` | Data analysis, reports, and predictions |
+
+## Firebase Integration
+
+The API uses Firebase for:
+- User authentication (Firebase Auth)
+- Real-time database operations
+- Password reset verification codes
+
+<Info>
+Firebase initialization can be skipped in development by setting `SKIP_FIREBASE_INIT=true`.
+</Info>
+
+## Getting Started
+
+<Steps>
+  <Step title="Obtain an API Token">
+    Register an account and authenticate to receive a JWT token. See the [Authentication](/api/authentication) guide.
+  </Step>
+  
+  <Step title="Make Your First Request">
+    Use the token in the `Authorization` header:
+    
+    ```bash
+    curl -X GET https://your-api-domain.com/workspaces \
+      -H "Authorization: Bearer your_jwt_token" \
+      -H "Content-Type: application/json"
+    ```
+  </Step>
+  
+  <Step title="Connect to WebSockets">
+    Subscribe to real-time meter data using Socket.IO with your token.
+  </Step>
+</Steps>
+
+## Next Steps
+
+- Learn about [API Authentication](/api/authentication) methods
+- Explore endpoint documentation for each module
+- Set up WebSocket connections for real-time data

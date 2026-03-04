@@ -1,0 +1,552 @@
+---
+title: 'Workspaces'
+description: 'Manage workspaces and collaborate with team members'
+---
+
+## List User Workspaces
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/workspaces/?limit=10" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Workspaces retrieved successfully",
+  "data": {
+    "workspaces": [
+      {
+        "id": "workspace123",
+        "name": "My Water Quality Project",
+        "owner": "user123",
+        "type": "private",
+        "rol": "owner"
+      }
+    ],
+    "next_index": "eyJpZCI6Im5leHQifQ=="
+  }
+}
+```
+</ResponseExample>
+
+Retrieve all workspaces owned by the authenticated user.
+
+**Endpoint:** `GET /workspaces/`
+
+**Authentication:** Required (Bearer token)
+
+### Query Parameters
+
+<ParamField query="limit" type="number" default="10">
+  Number of items to retrieve (1-100)
+</ParamField>
+
+<ParamField query="index" type="string">
+  Pagination index for next page
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Workspace data with pagination
+  <Expandable title="Data Object">
+    <ResponseField name="workspaces" type="array">
+      Array of workspace objects
+    </ResponseField>
+    <ResponseField name="next_index" type="string">
+      Index for next page (if available)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+## Get Workspace by ID
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/workspaces/workspace123 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Workspace retrieved successfully",
+  "data": {
+    "id": "workspace123",
+    "name": "My Water Quality Project",
+    "owner": "user123",
+    "type": "private",
+    "rol": "owner",
+    "user": {
+      "uid": "user123",
+      "email": "user@example.com",
+      "username": "johndoe"
+    }
+  }
+}
+```
+</ResponseExample>
+
+Retrieve a specific workspace by ID.
+
+**Endpoint:** `GET /workspaces/{id}`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Workspace ID
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Workspace details including owner information
+</ResponseField>
+
+---
+
+## Create Workspace
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/workspaces/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "New Water Quality Project",
+    "type": "private"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Workspace created successfully",
+  "data": {
+    "id": "workspace456",
+    "name": "New Water Quality Project",
+    "owner": "user123",
+    "type": "private",
+    "rol": "owner"
+  }
+}
+```
+</ResponseExample>
+
+Create a new workspace.
+
+**Endpoint:** `POST /workspaces/`
+
+**Authentication:** Required (Bearer token)
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Workspace name (3-50 characters)
+</ParamField>
+
+<ParamField body="type" type="string" default="private">
+  Workspace type: `private` or `public`
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Created workspace object
+</ResponseField>
+
+---
+
+## Update Workspace
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/workspaces/workspace123 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Project Name",
+    "type": "public"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Workspace updated successfully",
+  "data": {
+    "id": "workspace123",
+    "name": "Updated Project Name",
+    "owner": "user123",
+    "type": "public",
+    "rol": "owner"
+  }
+}
+```
+</ResponseExample>
+
+Update workspace details.
+
+**Endpoint:** `PUT /workspaces/{id}`
+
+**Authentication:** Required (Bearer token, must be owner)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Workspace ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Updated workspace name
+</ParamField>
+
+<ParamField body="type" type="string">
+  Workspace type: `private` or `public`
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Updated workspace object
+</ResponseField>
+
+---
+
+## Delete Workspace
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.example.com/workspaces/workspace123 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Workspace deleted successfully"
+}
+```
+</ResponseExample>
+
+Delete a workspace.
+
+**Endpoint:** `DELETE /workspaces/{id}`
+
+**Authentication:** Required (Bearer token, must be owner)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Workspace ID to delete
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+---
+
+## List Shared Workspaces
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/workspaces/share/?limit=10" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Shares retrieved successfully",
+  "workspaces": {
+    "workspaces": [
+      {
+        "id": "workspace789",
+        "name": "Shared Project",
+        "owner": "otheruser123",
+        "type": "private",
+        "rol": "viewer",
+        "guest": "user123"
+      }
+    ],
+    "next_index": null
+  }
+}
+```
+</ResponseExample>
+
+Get workspaces that have been shared with the authenticated user.
+
+**Endpoint:** `GET /workspaces/share/`
+
+**Authentication:** Required (Bearer token)
+
+### Query Parameters
+
+<ParamField query="limit" type="number" default="10">
+  Number of items to retrieve (1-100)
+</ParamField>
+
+<ParamField query="index" type="string">
+  Pagination index
+</ParamField>
+
+---
+
+## List Public Workspaces
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/workspaces/public/?limit=10"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Public workspaces retrieved successfully",
+  "workspaces": {
+    "workspaces": [
+      {
+        "id": "workspace999",
+        "name": "Public Water Quality Data",
+        "rol": "viewer"
+      }
+    ],
+    "next_index": null
+  }
+}
+```
+</ResponseExample>
+
+Get all public workspaces.
+
+**Endpoint:** `GET /workspaces/public/`
+
+**Authentication:** None required
+
+### Query Parameters
+
+<ParamField query="limit" type="number" default="10">
+  Number of items to retrieve (1-100)
+</ParamField>
+
+<ParamField query="index" type="string">
+  Pagination index
+</ParamField>
+
+---
+
+## Get Workspace Guests
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/workspaces/workspace123/guest/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Guests retrieved successfully",
+  "guests": [
+    {
+      "uid": "guest123",
+      "email": "guest@example.com",
+      "username": "guestuser",
+      "rol": "viewer"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+Get all guests (collaborators) for a workspace.
+
+**Endpoint:** `GET /workspaces/{id}/guest/`
+
+**Authentication:** Required (Bearer token, must be owner)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Workspace ID
+</ParamField>
+
+---
+
+## Add Guest to Workspace
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/workspaces/workspace123/guest/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "guest": "guest@example.com",
+    "rol": "viewer"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Guest created successfully",
+  "guest": {
+    "uid": "guest123",
+    "email": "guest@example.com",
+    "username": "guestuser",
+    "rol": "viewer"
+  }
+}
+```
+</ResponseExample>
+
+Add a guest (collaborator) to a workspace. An invitation email will be sent.
+
+**Endpoint:** `POST /workspaces/{id}/guest/`
+
+**Authentication:** Required (Bearer token, must be owner)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Workspace ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="guest" type="string" required>
+  Email address of the user to invite
+</ParamField>
+
+<ParamField body="rol" type="string" required>
+  Role for the guest: `viewer`, `editor`, or `admin`
+</ParamField>
+
+---
+
+## Update Guest Role
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/workspaces/workspace123/guest/guest123 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rol": "editor"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Guest updated successfully",
+  "guest": {
+    "uid": "guest123",
+    "email": "guest@example.com",
+    "username": "guestuser",
+    "rol": "editor"
+  }
+}
+```
+</ResponseExample>
+
+Update a guest's role in the workspace.
+
+**Endpoint:** `PUT /workspaces/{id}/guest/{guest}`
+
+**Authentication:** Required (Bearer token, must be owner)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="guest" type="string" required>
+  Guest user ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="rol" type="string" required>
+  New role: `viewer`, `editor`, or `admin`
+</ParamField>
+
+---
+
+## Remove Guest from Workspace
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.example.com/workspaces/workspace123/guest/guest123 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Guest deleted successfully",
+  "guest": {
+    "uid": "guest123",
+    "email": "guest@example.com",
+    "username": "guestuser",
+    "rol": "viewer"
+  }
+}
+```
+</ResponseExample>
+
+Remove a guest from the workspace.
+
+**Endpoint:** `DELETE /workspaces/{id}/guest/{guest}`
+
+**Authentication:** Required (Bearer token, must be owner)
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="guest" type="string" required>
+  Guest user ID to remove
+</ParamField>

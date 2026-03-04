@@ -1,0 +1,438 @@
+---
+title: Water Quality Meters
+description: IoT meter integration with real-time data collection and weather API integration
+---
+
+## Overview
+
+The Water Quality Meters feature enables registration, configuration, and real-time monitoring of IoT water quality sensors. Meters collect data from multiple sensors and transmit it via WebSocket connections for real-time analysis.
+
+<CardGroup cols={3}>
+  <Card title="IoT Integration" icon="microchip">
+    Real-time sensor data collection via WebSocket
+  </Card>
+  <Card title="Multi-Sensor Support" icon="gauge">
+    pH, TDS, temperature, conductivity, turbidity
+  </Card>
+  <Card title="Weather Data" icon="cloud-sun">
+    Integrated weather API for environmental context
+  </Card>
+</CardGroup>
+
+## Sensor Types
+
+Each water quality meter can collect data from five primary sensors:
+
+<AccordionGroup>
+  <Accordion title="pH Sensor" icon="droplet">
+    Measures the acidity or alkalinity of water
+    - **Range:** 0-14
+    - **Optimal:** 6.5-8.5 for drinking water
+    - **Type:** `ph` in API
+  </Accordion>
+
+  <Accordion title="TDS (Total Dissolved Solids)" icon="flask">
+    Measures dissolved minerals, salts, and metals
+    - **Unit:** ppm (parts per million)
+    - **Optimal:** < 500 ppm for drinking water
+    - **Type:** `tds` in API
+  </Accordion>
+
+  <Accordion title="Temperature" icon="temperature-half">
+    Measures water temperature
+    - **Unit:** Celsius (°C)
+    - **Type:** `temperature` in API
+    - **Impact:** Affects other sensor readings
+  </Accordion>
+
+  <Accordion title="Conductivity" icon="bolt">
+    Measures water's ability to conduct electricity
+    - **Unit:** μS/cm (microsiemens per centimeter)
+    - **Type:** `conductivity` in API
+    - **Related:** Correlates with TDS
+  </Accordion>
+
+  <Accordion title="Turbidity" icon="water">
+    Measures water clarity and suspended particles
+    - **Unit:** NTU (Nephelometric Turbidity Units)
+    - **Optimal:** < 5 NTU for drinking water
+    - **Type:** `turbidity` in API
+  </Accordion>
+</AccordionGroup>
+
+## Meter Registration
+
+### Create a Meter
+
+Register a new water quality meter in a workspace:
+
+```http
+POST /api/meters/{workspace_id}/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "name": "Lake Monitor Station 1",
+  "location": {
+    "name_location": "Central Lake",
+    "lat": 40.7128,
+    "lon": -74.0060
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Meter created successfully",
+  "meter": {
+    "id": "meter_abc123",
+    "name": "Lake Monitor Station 1",
+    "location": {
+      "name_location": "Central Lake",
+      "lat": 40.7128,
+      "lon": -74.0060
+    },
+    "state": "disconnected",
+    "rol": "owner"
+  }
+}
+```
+
+### Data Model
+
+```python
+class Location(BaseModel):
+    name_location: str | None = None
+    lat: float  # Latitude
+    lon: float  # Longitude
+
+class WQMeterCreate(BaseModel):
+    name: str
+    location: Location
+
+class WQMeter(WQMeterCreate):
+    state: MeterConnectionState = MeterConnectionState.DISCONNECTED
+```
+
+See: `~/workspace/source/app/features/meters/domain/model.py:22`
+
+## Token-Based Connection
+
+Meters use secure token-based authentication to establish WebSocket connections.
+
+### Pairing Process
+
+<Steps>
+  <Step title="Request Connection Token">
+    Generate a time-limited token for the meter to connect:
+
+    ```http
+    POST /api/meters/{workspace_id}/pair/{meter_id}/
+    Authorization: Bearer {access_token}
+    ```
+
+    **Response:**
+    ```json
+    {
+      "message": "Connection received",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+
+    <Info>
+      Token is valid for **30 days** (2,592,000 seconds) and contains workspace, owner, and meter identifiers.
+    </Info>
+  </Step>
+
+  <Step title="Validate Token">
+    Before establishing WebSocket connection, validate the token:
+
+    ```http
+    POST /api/meters/{workspace_id}/pair/{meter_id}/validate/
+    Content-Type: application/json
+    Authorization: Bearer {access_token}
+
+    {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+  </Step>
+
+  <Step title="Connect via WebSocket">
+    Use the validated token to establish WebSocket connection for real-time data transmission.
+  </Step>
+</Steps>
+
+### Token Payload
+
+```python
+class MeterPayload(BaseModel):
+    id_workspace: str
+    owner: str
+    id_meter: str
+    exp: float  # Expiration timestamp
+```
+
+<Warning>
+  A meter can only have one active connection at a time. Attempting to pair an already active meter returns a 409 Conflict error.
+</Warning>
+
+## Real-Time Data Collection
+
+### WebSocket Integration
+
+Meters transmit sensor data in real-time via WebSocket connections:
+
+```python
+class SRColorValue(BaseModel):
+    r: int
+    g: int
+    b: int
+
+class RecordBody(BaseModel):
+    color: SRColorValue
+    conductivity: float
+    ph: float
+    temperature: float
+    tds: float
+    turbidity: float
+
+class RecordResponse(BaseModel):
+    color: Record[SRColorValue]
+    conductivity: Record[float]
+    ph: Record[float]
+    temperature: Record[float]
+    tds: Record[float]
+    turbidity: Record[float]
+```
+
+Source: `~/workspace/source/app/share/socketio/domain/model.py:14`
+
+### Connection States
+
+```python
+class MeterConnectionState(str, Enum):
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
+```
+
+### Sensor Data Structure
+
+```python
+class SensorRecord(BaseModel, Generic[T]):
+    id: str
+    datetime: str  # ISO 8601 timestamp
+    value: T       # Sensor-specific value type
+
+class Sensor(BaseModel):
+    type: str              # Sensor type (ph, tds, etc.)
+    list: list[SensorRecord]  # Historical readings
+```
+
+## Query Sensor Records
+
+### Get All Sensor Data
+
+Retrieve sensor records with filtering:
+
+```http
+GET /api/meters/records/{workspace_id}/{meter_id}/?
+  start_date=2024-01-01&
+  end_date=2024-01-31&
+  sensor_type=ph&
+  limit=100&
+  index=cursor_token
+Authorization: Bearer {access_token}
+```
+
+**Query Parameters:**
+- `start_date` (optional): ISO 8601 date string
+- `end_date` (optional): ISO 8601 date string
+- `sensor_type` (optional): Filter by sensor (ph, tds, temperature, conductivity, turbidity)
+- `limit`: Number of records (default: 10)
+- `index`: Pagination cursor
+
+### Get Specific Sensor Records
+
+Query records for a single sensor type:
+
+```http
+GET /api/meters/records/{workspace_id}/{meter_id}/{sensor_name}/?limit=50
+Authorization: Bearer {access_token}
+```
+
+**Example Response:**
+```json
+{
+  "message": "Records retrieved successfully",
+  "records": [
+    {
+      "id": "record_123",
+      "datetime": "2024-01-15T10:30:00Z",
+      "value": 7.2
+    },
+    {
+      "id": "record_124",
+      "datetime": "2024-01-15T10:31:00Z",
+      "value": 7.3
+    }
+  ]
+}
+```
+
+## Weather API Integration
+
+Meters can access weather data based on their geographic location, providing environmental context for water quality readings.
+
+### Get Current Weather
+
+```http
+GET /api/meters/{workspace_id}/weather/{meter_id}/
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Current weather data",
+  "data": {
+    "temperature": 22.5,
+    "humidity": 65,
+    "conditions": "Partly Cloudy",
+    "location": {
+      "lat": 40.7128,
+      "lon": -74.0060
+    }
+  }
+}
+```
+
+### Get Historical Weather
+
+Retrieve weather data for the past N days:
+
+```http
+GET /api/meters/{workspace_id}/weather/{meter_id}/?last_days=7
+Authorization: Bearer {access_token}
+```
+
+<Info>
+  Weather data is fetched based on the meter's configured location (latitude/longitude). Ensure meters have accurate location data for relevant weather information.
+</Info>
+
+See implementation: `~/workspace/source/app/features/meters/presentation/routes.py:227`
+
+## Meter Management
+
+### List All Meters in Workspace
+
+```http
+GET /api/meters/{workspace_id}/
+Authorization: Bearer {access_token}
+```
+
+### Get Meter Details
+
+```http
+GET /api/meters/{workspace_id}/{meter_id}/
+Authorization: Bearer {access_token}
+```
+
+### Update Meter Configuration
+
+```http
+PUT /api/meters/{workspace_id}/{meter_id}/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "name": "Updated Meter Name",
+  "location": {
+    "name_location": "New Location",
+    "lat": 41.8781,
+    "lon": -87.6298
+  }
+}
+```
+
+### Delete a Meter
+
+<Warning>
+  Deleting a meter removes all associated sensor records and historical data. This action cannot be undone.
+</Warning>
+
+```http
+DELETE /api/meters/{workspace_id}/{meter_id}/
+Authorization: Bearer {access_token}
+```
+
+## Sensor Status
+
+```python
+class SensorStatus(str, Enum):
+    ACTIVE = "active"
+    DISABLED = "disabled"
+```
+
+Meters can be temporarily disabled without deleting historical data.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Accurate Locations" icon="location-dot">
+    Set precise GPS coordinates for accurate weather data correlation
+  </Card>
+  <Card title="Secure Tokens" icon="key">
+    Store connection tokens securely on IoT devices
+  </Card>
+  <Card title="Connection Monitoring" icon="wifi">
+    Monitor connection state and implement reconnection logic
+  </Card>
+  <Card title="Data Validation" icon="circle-check">
+    Validate sensor readings on the device before transmission
+  </Card>
+</CardGroup>
+
+## Example: Complete Meter Setup
+
+```python
+import requests
+
+# 1. Create workspace
+workspace_response = requests.post(
+    "https://api.example.com/api/workspaces/",
+    headers={"Authorization": f"Bearer {token}"},
+    json={
+        "name": "River Monitoring Project",
+        "type": "private"
+    }
+)
+workspace_id = workspace_response.json()["data"]["id"]
+
+# 2. Register meter
+meter_response = requests.post(
+    f"https://api.example.com/api/meters/{workspace_id}/",
+    headers={"Authorization": f"Bearer {token}"},
+    json={
+        "name": "Upstream Station",
+        "location": {
+            "name_location": "River Mile 42",
+            "lat": 40.7128,
+            "lon": -74.0060
+        }
+    }
+)
+meter_id = meter_response.json()["meter"]["id"]
+
+# 3. Get connection token
+pair_response = requests.post(
+    f"https://api.example.com/api/meters/{workspace_id}/pair/{meter_id}/",
+    headers={"Authorization": f"Bearer {token}"}
+)
+connection_token = pair_response.json()["token"]
+
+# 4. Use connection_token to establish WebSocket connection
+# (Implementation depends on IoT device firmware)
+```

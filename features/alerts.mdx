@@ -1,0 +1,503 @@
+---
+title: Alerts & Notifications
+description: Configurable threshold-based alerts with email and push notification delivery
+---
+
+## Overview
+
+The Alerts & Notifications system monitors water quality metrics in real-time and triggers notifications when sensor values fall outside configured thresholds. Alerts support multiple notification channels and include approval workflows for critical conditions.
+
+<CardGroup cols={3}>
+  <Card title="Threshold-Based" icon="chart-line">
+    Configure min/max ranges for each sensor type
+  </Card>
+  <Card title="Multi-Channel" icon="bell">
+    Email (Resend) and push notifications (OneSignal)
+  </Card>
+  <Card title="Approval Workflow" icon="circle-check">
+    Critical alerts require owner approval before team notification
+  </Card>
+</CardGroup>
+
+## Alert Types
+
+Alerts are categorized by water quality severity:
+
+<AccordionGroup>
+  <Accordion title="Dangerous" icon="triangle-exclamation" iconType="solid">
+    **Critical water quality issues requiring immediate action**
+    
+    - Values indicate unsafe conditions
+    - Triggers approval workflow
+    - Highest priority notifications
+    - Requires owner/administrator approval before team notification
+
+    ```python
+    AlertType.DANGEROUS = "dangerous"
+    ```
+  </Accordion>
+
+  <Accordion title="Poor" icon="circle-xmark">
+    **Below acceptable standards**
+    
+    - Water quality is degraded
+    - Immediate notification to configured guests
+    - No approval required
+
+    ```python
+    AlertType.POOR = "poor"
+    ```
+  </Accordion>
+
+  <Accordion title="Moderate" icon="circle-minus">
+    **Acceptable but not optimal**
+    
+    - Water quality is within limits but could be better
+    - Standard notification delivery
+
+    ```python
+    AlertType.MODERATE = "moderate"
+    ```
+  </Accordion>
+
+  <Accordion title="Good" icon="circle-check">
+    **Good water quality**
+    
+    - Parameters within healthy ranges
+    - Optional notification for monitoring
+
+    ```python
+    AlertType.GOOD = "good"
+    ```
+  </Accordion>
+
+  <Accordion title="Excellent" icon="star">
+    **Optimal water quality**
+    
+    - All parameters in excellent range
+    - Informational notifications
+
+    ```python
+    AlertType.EXCELLENT = "excellent"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Alert Configuration
+
+### Create an Alert
+
+Configure threshold-based monitoring for a meter:
+
+```http
+POST /api/alerts/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "title": "Critical pH Alert",
+  "type": "dangerous",
+  "workspace_id": "workspace_123",
+  "meter_id": "meter_456",
+  "parameters": {
+    "ph": {
+      "min": 6.5,
+      "max": 8.5
+    },
+    "tds": {
+      "min": 0,
+      "max": 500
+    },
+    "temperature": {
+      "min": 0,
+      "max": 30
+    },
+    "conductivity": {
+      "min": 0,
+      "max": 800
+    },
+    "turbidity": {
+      "min": 0,
+      "max": 5
+    }
+  },
+  "guests": [
+    "user1@example.com",
+    "user2@example.com"
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Alert created successfully",
+  "alert": {
+    "id": "alert_789",
+    "title": "Critical pH Alert",
+    "type": "dangerous",
+    "workspace_id": "workspace_123",
+    "meter_id": "meter_456",
+    "owner": "user_owner",
+    "parameters": { /* ... */ },
+    "guests": ["user1@example.com", "user2@example.com"]
+  }
+}
+```
+
+### Parameter Model
+
+```python
+class RangeValue(BaseModel):
+    min: float
+    max: float
+
+    @field_validator('max')
+    @classmethod
+    def validate_max_greater_than_min(cls, v, info):
+        if 'min' in info.data and v <= info.data['min']:
+            raise ValueError('max must be greater than min')
+        return v
+
+class Parameter(BaseModel):
+    ph: RangeValue
+    tds: RangeValue
+    temperature: RangeValue
+    conductivity: RangeValue
+    turbidity: RangeValue
+```
+
+Source: `~/workspace/source/app/share/parameters/domain/model.py:4`
+
+<Note>
+  All five sensor parameters must be configured for each alert. The `max` value must be greater than `min` for each range.
+</Note>
+
+## Notification Channels
+
+### Email Notifications (Resend)
+
+Alerts are delivered via email using the Resend API:
+
+- **HTML templated emails** with professional formatting
+- **Workspace and meter context** included
+- **Detected sensor values** that triggered the alert
+- **Approval status** for critical alerts
+
+**Email Template Features:**
+```python
+# Guest invitation email
+html_template.get_guest_workspace(
+    guest_name="John Doe",
+    inviter_name="Jane Smith",
+    workspace_id="workspace_123"
+)
+
+# Critical alert notification email
+html_template.get_critical_alert_notification_email(
+    approver_name="Owner Name",
+    detected_values=[{"parameter": "ph", "value": 9.2}],
+    meter="Lake Monitor Station 1",
+    workspace="River Monitoring Project"
+)
+```
+
+See: `~/workspace/source/app/share/email/service/resend_email.py`
+
+### Push Notifications (OneSignal)
+
+Real-time push notifications via OneSignal:
+
+- **Mobile device support** (iOS and Android)
+- **Web push notifications**
+- **Rich notification content** with alert details
+- **Deep linking** to relevant meter data
+
+Source: `~/workspace/source/app/share/messages/service/onesignal_service.py`
+
+## Notification Workflow
+
+### Standard Alerts (Good, Moderate, Poor, Excellent)
+
+<Steps>
+  <Step title="Threshold Breach Detected">
+    System continuously monitors sensor readings against configured thresholds.
+  </Step>
+
+  <Step title="Alert Triggered">
+    When a value falls outside the configured range, an alert is triggered.
+  </Step>
+
+  <Step title="Notifications Sent">
+    Email and push notifications are immediately sent to all configured guests.
+  </Step>
+
+  <Step title="Notification Logged">
+    Alert event is recorded in notification history with `status: "accepted"`.
+  </Step>
+</Steps>
+
+### Critical Alerts (Dangerous)
+
+<Steps>
+  <Step title="Threshold Breach Detected">
+    Dangerous condition detected in sensor readings.
+  </Step>
+
+  <Step title="Pending Notification Created">
+    Notification created with `status: "pending"` and sent to workspace owner/administrators.
+  </Step>
+
+  <Step title="Approval Required">
+    Owner or administrator reviews the alert details:
+    ```http
+    GET /api/alerts/notifications/{notification_id}/
+    Authorization: Bearer {access_token}
+    ```
+  </Step>
+
+  <Step title="Accept or Reject">
+    Owner/administrator makes decision:
+    ```http
+    PUT /api/alerts/notifications/status/{notification_id}/
+    Content-Type: application/json
+    Authorization: Bearer {access_token}
+
+    {
+      "status": "accepted"  // or "rejected"
+    }
+    ```
+  </Step>
+
+  <Step title="Team Notification (if accepted)">
+    If accepted, detailed notification emails sent to all configured guests with:
+    - Approver name
+    - Detected parameter values
+    - Meter and workspace context
+  </Step>
+</Steps>
+
+### Notification Status
+
+```python
+class NotificationStatus(str, Enum):
+    PENDING = "pending"   # Awaiting approval (dangerous alerts)
+    ACCEPTED = "accepted" # Approved and sent to team
+    REJECTED = "rejected" # Dismissed by owner
+```
+
+<Warning>
+  Once a notification status is set to `accepted` or `rejected`, it cannot be changed again.
+</Warning>
+
+## Alert Management
+
+### List Alerts
+
+Query alerts with optional filters:
+
+```http
+GET /api/alerts/?
+  workspace_id=workspace_123&
+  meter_id=meter_456&
+  type=dangerous
+Authorization: Bearer {access_token}
+```
+
+### Get Alert Details
+
+```http
+GET /api/alerts/{alert_id}/
+Authorization: Bearer {access_token}
+```
+
+### Update Alert Configuration
+
+```http
+PUT /api/alerts/{alert_id}/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "title": "Updated Alert Title",
+  "type": "moderate",
+  "parameters": {
+    "ph": {
+      "min": 6.0,
+      "max": 9.0
+    },
+    // ... other parameters
+  },
+  "guests": ["updated@example.com"]
+}
+```
+
+### Delete Alert
+
+```http
+DELETE /api/alerts/{alert_id}/
+Authorization: Bearer {access_token}
+```
+
+## Notification History
+
+### Get User Notifications
+
+Retrieve notification history for the authenticated user:
+
+```http
+GET /api/alerts/notifications/?
+  type=dangerous&
+  is_read=false&
+  status=pending&
+  convert_timestamp=true
+Authorization: Bearer {access_token}
+```
+
+**Query Parameters:**
+- `type`: Filter by alert type (dangerous, poor, moderate, good, excellent)
+- `is_read`: Filter by read status (true/false)
+- `status`: Filter by notification status (pending, accepted, rejected)
+- `convert_timestamp`: Convert Unix timestamps to datetime strings
+
+**Response:**
+```json
+{
+  "message": "Notifications retrieved successfully",
+  "notifications": [
+    {
+      "id": "notif_123",
+      "title": "Critical pH Alert",
+      "body": "pH level exceeded safe threshold: 9.2",
+      "read": false,
+      "status": "pending",
+      "datetime": "2024-01-15T14:30:00Z",
+      "alert_id": "alert_789",
+      "record_parameters": [
+        {"parameter": "ph", "value": 9.2}
+      ]
+    }
+  ]
+}
+```
+
+### Mark Notification as Read
+
+```http
+PUT /api/alerts/notifications/{notification_id}/
+Authorization: Bearer {access_token}
+```
+
+### Get Notification Details
+
+```http
+GET /api/alerts/notifications/{notification_id}/
+Authorization: Bearer {access_token}
+```
+
+## Priority Parameters
+
+Certain parameters are prioritized for critical alerts:
+
+```python
+class PriorityParameters(list[str], Enum):
+    parameters: list[str] = ["ph", "turbidity"]
+```
+
+**pH** and **turbidity** are considered high-priority indicators of water safety.
+
+## Data Models
+
+### Alert Model
+
+```python
+class AlertData(BaseModel):
+    title: str
+    type: AlertType
+    workspace_id: str
+    meter_id: str
+    owner: str
+    parameters: Parameter | None
+    guests: list[str]
+
+class Alert(AlertData):
+    id: str
+```
+
+Source: `~/workspace/source/app/features/alerts/domain/model.py:6`
+
+### Notification Model
+
+```python
+class RecordParameter(BaseModel):
+    parameter: str  # Sensor type (ph, tds, etc.)
+    value: float    # Measured value
+
+class NotificationBody(BaseModel):
+    id: str = None
+    read: bool = False
+    title: str
+    body: str
+    user_ids: list[str]
+    timestamp: float | None = None
+    status: NotificationStatus | None = None
+    alert_id: str | None = None
+    record_parameters: list[RecordParameter] = []
+    aproved_by: str | None = None
+```
+
+Source: `~/workspace/source/app/share/messages/domain/model.py:72`
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Appropriate Thresholds" icon="sliders">
+    Set thresholds based on local water quality standards and use cases
+  </Card>
+  <Card title="Strategic Guest Lists" icon="users">
+    Include relevant stakeholders who can take action on alerts
+  </Card>
+  <Card title="Alert Type Selection" icon="tag">
+    Use "dangerous" type sparingly for truly critical conditions
+  </Card>
+  <Card title="Regular Review" icon="calendar">
+    Periodically review and adjust thresholds based on historical data
+  </Card>
+  <Card title="Prompt Approval" icon="clock">
+    Respond quickly to pending dangerous alerts to enable team notification
+  </Card>
+  <Card title="Test Notifications" icon="vial">
+    Verify notification delivery channels are working correctly
+  </Card>
+</CardGroup>
+
+## Example: Complete Alert Setup
+
+```python
+import requests
+
+# Create alert for pH monitoring
+alert_response = requests.post(
+    "https://api.example.com/api/alerts/",
+    headers={"Authorization": f"Bearer {token}"},
+    json={
+        "title": "Drinking Water pH Monitor",
+        "type": "dangerous",
+        "workspace_id": "workspace_123",
+        "meter_id": "meter_456",
+        "parameters": {
+            "ph": {"min": 6.5, "max": 8.5},
+            "tds": {"min": 0, "max": 500},
+            "temperature": {"min": 0, "max": 30},
+            "conductivity": {"min": 0, "max": 800},
+            "turbidity": {"min": 0, "max": 5}
+        },
+        "guests": [
+            "water-quality-team@example.com",
+            "site-manager@example.com"
+        ]
+    }
+)
+
+print(f"Alert created: {alert_response.json()['alert']['id']}")
+```

@@ -1,0 +1,559 @@
+---
+title: 'Meters'
+description: 'Manage water quality meters and sensor data'
+---
+
+## List Meters in Workspace
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/meters/workspace123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Meters retrieved successfully",
+  "meters": [
+    {
+      "id": "meter123",
+      "name": "Lake Monitor A",
+      "location": {
+        "name_location": "Lake Superior",
+        "lat": 47.6062,
+        "lon": -122.3321
+      },
+      "state": "connected",
+      "rol": "owner"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+Retrieve all meters in a workspace.
+
+**Endpoint:** `GET /meters/{id_workspace}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="meters" type="array">
+  Array of meter objects
+</ResponseField>
+
+---
+
+## Create Meter
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/meters/workspace123/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "River Monitor B",
+    "location": {
+      "name_location": "Mississippi River",
+      "lat": 38.6270,
+      "lon": -90.1994
+    }
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Meter created successfully",
+  "meter": {
+    "id": "meter456",
+    "name": "River Monitor B",
+    "location": {
+      "name_location": "Mississippi River",
+      "lat": 38.6270,
+      "lon": -90.1994
+    },
+    "state": "disconnected",
+    "rol": "owner"
+  }
+}
+```
+</ResponseExample>
+
+Create a new meter in a workspace.
+
+**Endpoint:** `POST /meters/{id_workspace}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Meter name
+</ParamField>
+
+<ParamField body="location" type="object" required>
+  Location information
+  <Expandable title="Location Object">
+    <ParamField body="name_location" type="string">
+      Location name (optional)
+    </ParamField>
+    <ParamField body="lat" type="number" required>
+      Latitude coordinate
+    </ParamField>
+    <ParamField body="lon" type="number" required>
+      Longitude coordinate
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+---
+
+## Get Meter Details
+
+<RequestExample>
+```bash cURL
+curl -X GET https://api.example.com/meters/workspace123/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Meter retrieved successfully",
+  "meter": {
+    "id": "meter123",
+    "name": "Lake Monitor A",
+    "location": {
+      "name_location": "Lake Superior",
+      "lat": 47.6062,
+      "lon": -122.3321
+    },
+    "state": "connected",
+    "rol": "owner"
+  }
+}
+```
+</ResponseExample>
+
+Get details of a specific meter.
+
+**Endpoint:** `GET /meters/{id_workspace}/{id_meter}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID
+</ParamField>
+
+---
+
+## Update Meter
+
+<RequestExample>
+```bash cURL
+curl -X PUT https://api.example.com/meters/workspace123/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Lake Monitor",
+    "location": {
+      "name_location": "Lake Superior North",
+      "lat": 47.7062,
+      "lon": -122.4321
+    }
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Meter updated successfully",
+  "meter": {
+    "id": "meter123",
+    "name": "Updated Lake Monitor",
+    "location": {
+      "name_location": "Lake Superior North",
+      "lat": 47.7062,
+      "lon": -122.4321
+    },
+    "state": "connected",
+    "rol": "owner"
+  }
+}
+```
+</ResponseExample>
+
+Update meter information.
+
+**Endpoint:** `PUT /meters/{id_workspace}/{id_meter}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Updated meter name
+</ParamField>
+
+<ParamField body="location" type="object" required>
+  Updated location information
+</ParamField>
+
+---
+
+## Delete Meter
+
+<RequestExample>
+```bash cURL
+curl -X DELETE https://api.example.com/meters/workspace123/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Meter deleted successfully",
+  "meter": {
+    "id": "meter123",
+    "name": "Lake Monitor A"
+  }
+}
+```
+</ResponseExample>
+
+Delete a meter.
+
+**Endpoint:** `DELETE /meters/{id_workspace}/{id_meter}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID to delete
+</ParamField>
+
+---
+
+## Pair Meter (Generate Connection Token)
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/meters/workspace123/pair/meter123/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Connection received",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+</ResponseExample>
+
+Generate a connection token for pairing a physical meter device.
+
+**Endpoint:** `POST /meters/{id_workspace}/pair/{id_meter}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID to pair
+</ParamField>
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message
+</ResponseField>
+
+<ResponseField name="token" type="string">
+  Connection token for the meter device (valid for 30 days)
+</ResponseField>
+
+---
+
+## Validate Meter Token
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.example.com/meters/workspace123/pair/meter123/validate/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Token valido"
+}
+```
+</ResponseExample>
+
+Validate a meter connection token.
+
+**Endpoint:** `POST /meters/{id_workspace}/pair/{id_meter}/validate/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="token" type="string" required>
+  Connection token to validate
+</ParamField>
+
+---
+
+## Query Meter Records
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/meters/records/workspace123/meter123/?start_date=2024-01-01&end_date=2024-01-31&sensor_type=ph&limit=50" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Records retrieved successfully",
+  "records": {
+    "records": [
+      {
+        "id": "record123",
+        "datetime": "2024-01-15T10:30:00Z",
+        "sensor_type": "ph",
+        "value": 7.2
+      }
+    ],
+    "next_index": "eyJpZCI6Im5leHQifQ=="
+  }
+}
+```
+</ResponseExample>
+
+Query sensor records from a meter with filters.
+
+**Endpoint:** `GET /meters/records/{id_workspace}/{id_meter}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="start_date" type="string">
+  Start date for filtering (ISO 8601 format)
+</ParamField>
+
+<ParamField query="end_date" type="string">
+  End date for filtering (ISO 8601 format)
+</ParamField>
+
+<ParamField query="sensor_type" type="string">
+  Filter by sensor type: `ph`, `temperature`, `conductivity`, `tds`, `turbidity`
+</ParamField>
+
+<ParamField query="limit" type="number" default="10">
+  Number of records to retrieve
+</ParamField>
+
+<ParamField query="index" type="string">
+  Pagination index
+</ParamField>
+
+---
+
+## Get Sensor Records by Type
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/meters/records/workspace123/meter123/ph/?limit=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "message": "Records retrieved successfully",
+  "records": {
+    "records": [
+      {
+        "id": "record456",
+        "datetime": "2024-01-15T10:30:00Z",
+        "value": 7.2
+      }
+    ],
+    "next_index": null
+  }
+}
+```
+</ResponseExample>
+
+Get records for a specific sensor type.
+
+**Endpoint:** `GET /meters/records/{id_workspace}/{id_meter}/{sensor_name}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID
+</ParamField>
+
+<ParamField path="sensor_name" type="string" required>
+  Sensor type: `ph`, `temperature`, `conductivity`, `tds`, or `turbidity`
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="limit" type="number" default="10">
+  Number of records to retrieve
+</ParamField>
+
+<ParamField query="index" type="string">
+  Pagination index
+</ParamField>
+
+---
+
+## Get Weather Data for Meter
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.example.com/meters/workspace123/weather/meter123/?last_days=7" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Weather data retrieved",
+  "data": {
+    "current": {
+      "temp_c": 18.5,
+      "humidity": 65,
+      "condition": "Partly cloudy"
+    }
+  }
+}
+```
+</ResponseExample>
+
+Get current or historical weather data for the meter's location.
+
+**Endpoint:** `GET /meters/{id_workspace}/weather/{id_meter}/`
+
+**Authentication:** Required (Bearer token)
+
+### Path Parameters
+
+<ParamField path="id_workspace" type="string" required>
+  Workspace ID
+</ParamField>
+
+<ParamField path="id_meter" type="string" required>
+  Meter ID
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="last_days" type="number">
+  Number of days of historical weather data (if omitted, returns current weather)
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Whether the request was successful
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Response message
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Weather data from external API
+</ResponseField>
