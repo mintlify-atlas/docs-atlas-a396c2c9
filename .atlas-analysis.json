@@ -1,0 +1,110 @@
+{
+  "projectType": "api-service",
+  "projectName": "Water Quality Backend API",
+  "projectDescription": "A FastAPI-based backend service for monitoring water quality metrics with real-time alerts, data analysis, and workspace management.",
+  "theme": "palm",
+  "primaryColor": "#2E86AB",
+  "lightColor": "#A23B72",
+  "darkColor": "#06BEE1",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/architecture",
+              "guides/authentication",
+              "guides/deployment",
+              "guides/environment"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/workspaces",
+              "features/meters",
+              "features/alerts",
+              "features/analysis",
+              "features/monitoring"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/auth",
+              "api/workspaces",
+              "api/meters",
+              "api/alerts",
+              "api/users",
+              "api/analysis",
+              "api/monitoring"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time water quality monitoring with IoT meter integration",
+    "Firebase authentication and real-time database synchronization",
+    "Advanced data analysis including predictions, correlations, and averages",
+    "Customizable alerts with email and push notifications via OneSignal",
+    "Multi-workspace support with role-based access control",
+    "AI-powered chat for analysis insights using OpenRouter",
+    "Weather API integration for environmental context",
+    "Prometheus metrics for system monitoring",
+    "Report generation with matplotlib charts and PDF export"
+  ],
+  "publicApiSurface": [
+    "POST /auth/register - Register new user",
+    "POST /auth/login - User authentication",
+    "GET /auth/github - GitHub OAuth authentication",
+    "GET /workspaces/ - Get user workspaces",
+    "POST /workspaces/ - Create workspace",
+    "PUT /workspaces/{id} - Update workspace",
+    "DELETE /workspaces/{id} - Delete workspace",
+    "GET /workspaces/{id}/guest/ - Get workspace guests",
+    "POST /workspaces/{id}/guest/ - Add guest to workspace",
+    "GET /meters/{workspace_id}/ - Get meters in workspace",
+    "POST /meters/ - Create water quality meter",
+    "POST /meters/connect - Connect meter with token",
+    "GET /meters/{workspace_id}/{meter_id}/records - Get meter records",
+    "GET /alerts/ - Query alerts by workspace, meter, or type",
+    "POST /alerts/ - Create new alert",
+    "PUT /alerts/{id} - Update alert configuration",
+    "DELETE /alerts/{id} - Delete alert",
+    "GET /alerts/notifications/ - Get alert notifications",
+    "GET /analysis/average/{workspace_id}/{meter_id}/ - Get average analysis",
+    "POST /analysis/average/ - Create average analysis",
+    "POST /analysis/prediction/ - Create prediction analysis",
+    "POST /analysis/correlation/ - Create correlation analysis",
+    "POST /analysis/ai/{analysis_id}/session - Create AI chat session",
+    "POST /analysis/ai/{analysis_id}/chat/{session_id} - Chat with AI about analysis",
+    "GET /analysis/report/{work_id}/{meter_id}/ - Generate PDF report",
+    "GET /users/me - Get current user profile",
+    "PUT /users/me - Update user profile",
+    "GET /monitoring/metrics - Prometheus metrics endpoint"
+  ]
+}
